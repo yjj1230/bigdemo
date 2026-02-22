@@ -1,0 +1,53 @@
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+spring:
+  ai:
+    deepseek:
+      api-key: sk-2b59ed31a68a4b66b4d2e13a8920b8a8
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 1.6
+    zhipuai:
+      api-key: a0023d938bb44452af4155fe2f1d9516.uu5X4jQHAFkwFx6Y
+      base-url: https://open.bigmodel.cn/api/paas
+      embedding:
+        options:
+          model: embedding-2
+      chat:
+        options:
+          model: glm-4-air
+  main:
+    allow-bean-definition-overriding: true
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/users?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+    username: root
+    password: 123456
+  data:
+    jdbc:
+      repositories:
+        enabled: false
+    redis:
+      password: 123456
+      host: localhost
+      port: 6379
+      timeout: 10000
+      database: 0
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.example.shopdemo.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
