@@ -140,11 +140,7 @@
             <artifactId>httpclient</artifactId>
             <version>4.5.14</version>
         </dependency>
-        <!-- RabbitMQ for message queue -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
+
     </dependencies>
 
     <build>
