@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * Spring Boot应用程序的入口点
  */
 @SpringBootApplication
+//开启定时任务
 @EnableScheduling
 @MapperScan("org.example.shopdemo.mapper")
 public class ShopdemoApplication {
