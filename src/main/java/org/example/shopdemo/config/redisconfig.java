@@ -44,6 +44,8 @@ public class redisconfig {
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         // 启用默认类型，确保反序列化时能正确识别类型
         objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.EVERYTHING);
+        // 配置反序列化时忽略未知属性
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         jackson2JsonRedisSerializer.setObjectMapper(objectMapper);
 
         template.setValueSerializer(jackson2JsonRedisSerializer);
