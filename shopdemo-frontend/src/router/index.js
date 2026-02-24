@@ -65,6 +65,36 @@ const routes = [
     name: 'Admin',
     component: () => import('@/views/admin/Admin.vue'),
     meta: { title: '管理后台', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/ai',
+    name: 'AiAssistant',
+    component: () => import('@/views/AiAssistant.vue'),
+    meta: { title: 'AI智能助手', requiresAuth: true }
+  },
+  {
+    path: '/favorites',
+    name: 'Favorites',
+    component: () => import('@/views/Favorites.vue'),
+    meta: { title: '我的收藏', requiresAuth: true }
+  },
+  {
+    path: '/coupons',
+    name: 'Coupons',
+    component: () => import('@/views/Coupons.vue'),
+    meta: { title: '优惠券中心', requiresAuth: true }
+  },
+  {
+    path: '/points',
+    name: 'Points',
+    component: () => import('@/views/Points.vue'),
+    meta: { title: '积分中心', requiresAuth: true }
+  },
+  {
+    path: '/notification',
+    name: 'Notification',
+    component: () => import('@/views/Notification.vue'),
+    meta: { title: '消息中心', requiresAuth: true }
   }
 ]
 

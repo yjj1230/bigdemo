@@ -13,6 +13,8 @@ public class CreateOrderRequest {
     private BigDecimal totalAmount;
     /** 支付金额 */
     private BigDecimal payAmount;
+    /** 优惠券ID */
+    private Long couponId;
     /** 收货人姓名 */
     private String receiverName;
     /** 收货人电话 */

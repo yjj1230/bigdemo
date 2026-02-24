@@ -8,5 +8,6 @@ import lombok.Data;
 @Data
 public class CreateOrderFromCartRequest {
     private Long addressId;
+    private Long couponId;
     private String remark;
 }

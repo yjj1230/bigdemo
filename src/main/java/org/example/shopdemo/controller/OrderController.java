@@ -62,9 +62,31 @@ public class OrderController {
     public Result<Order> createOrderFromCart(
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
             @RequestBody CreateOrderFromCartRequest request) {
+        System.out.println("=== OrderController.createFromCart ===");
+        System.out.println("Token: " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
+        System.out.println("Request: " + request);
+        
+        if (token == null || token.isEmpty()) {
+            return Result.error(401, "未登录");
+        }
+        
+        if (request == null) {
+            return Result.error(400, "请求参数为空");
+        }
+        
+        if (request.getAddressId() == null) {
+            return Result.error(400, "收货地址ID不能为空");
+        }
+        
         String actualToken = org.example.shopdemo.utils.jwtutil.extractToken(token);
+        if (actualToken == null) {
+            return Result.error(401, "Token格式错误");
+        }
+        
         Long userId = org.example.shopdemo.utils.jwtutil.getUserIdFromToken(actualToken);
-        Order order = orderService.createOrderFromCart(userId, request.getAddressId(), request.getRemark());
+        System.out.println("UserId: " + userId);
+        
+        Order order = orderService.createOrderFromCart(userId, request.getAddressId(), request.getCouponId(), request.getRemark());
         return Result.success("创建订单成功", order);
     }
 
@@ -75,8 +97,18 @@ public class OrderController {
      */
     @GetMapping("/{id}")
     @Operation(summary = "根据ID获取订单", description = "根据订单ID获取订单详细信息")
-    public Result<Order> getOrderById(@PathVariable Long id) {
-        return Result.success(orderService.getOrderById(id));
+    public Result<OrderDetailDTO> getOrderById(@PathVariable Long id) {
+        Order order = orderService.getOrderById(id);
+        List<OrderItem> items = orderService.getOrderItems(id);
+        List<OrderItemDTO> itemDTOs = new ArrayList<>();
+        
+        for (OrderItem item : items) {
+            Product product = productMapper.findById(item.getProductId());
+            itemDTOs.add(OrderItemDTO.fromOrderItem(item, product));
+        }
+        
+        OrderDetailDTO orderDetail = OrderDetailDTO.fromOrder(order, itemDTOs);
+        return Result.success(orderDetail);
     }
 
     /**

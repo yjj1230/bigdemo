@@ -8,11 +8,11 @@ export const createOrder = (data) => {
   })
 }
 
-export const createOrderFromCart = (addressId, remark) => {
+export const createOrderFromCart = (addressId, couponId, remark) => {
   return request({
     url: '/order/createFromCart',
     method: 'post',
-    data: { addressId, remark }
+    data: { addressId, couponId, remark }
   })
 }
 

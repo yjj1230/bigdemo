@@ -37,14 +37,24 @@ public class CartService {
      * @return 购物车列表
      */
     public List<CartDTO> getUserCart(Long userId) {
+        System.out.println("=== CartService.getUserCart ===");
+        System.out.println("UserId: " + userId);
+        
         String cacheKey = RedisCacheService.generateKey(CART_CACHE_PREFIX, userId.toString());
+        System.out.println("CacheKey: " + cacheKey);
+        
         Object cachedCart = redisCacheService.get(cacheKey);
+        System.out.println("CachedCart: " + (cachedCart != null ? "存在" : "不存在"));
         
         if (cachedCart != null) {
-            return (List<CartDTO>) cachedCart;
+            List<CartDTO> cachedResult = (List<CartDTO>) cachedCart;
+            System.out.println("从缓存返回购物车数据，数量: " + cachedResult.size());
+            return cachedResult;
         }
         
         List<Cart> cartList = cartMapper.findByUserId(userId);
+        System.out.println("从数据库查询购物车数据，数量: " + cartList.size());
+        
         List<CartDTO> result = new ArrayList<>();
         
         for (Cart cart : cartList) {
@@ -53,6 +63,7 @@ public class CartService {
         }
         
         redisCacheService.set(cacheKey, result, 30, java.util.concurrent.TimeUnit.MINUTES);
+        System.out.println("购物车数据已缓存");
         return result;
     }
 
@@ -129,8 +140,9 @@ public class CartService {
      * 清除购物车缓存
      * @param userId 用户ID
      */
-    private void clearCartCache(Long userId) {
+    public void clearCartCache(Long userId) {
         String cacheKey = RedisCacheService.generateKey(CART_CACHE_PREFIX, userId.toString());
         redisCacheService.delete(cacheKey);
+        System.out.println("购物车缓存已清除: " + cacheKey);
     }
 }

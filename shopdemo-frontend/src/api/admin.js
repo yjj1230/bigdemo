@@ -87,3 +87,18 @@ export function updateUserRole(userId, role) {
     data: { role }
   })
 }
+
+export function deleteUser(userId) {
+  return request({
+    url: `/user/${userId}`,
+    method: 'delete'
+  })
+}
+
+export function updateUserById(userId, data) {
+  return request({
+    url: `/user/${userId}`,
+    method: 'put',
+    data
+  })
+}

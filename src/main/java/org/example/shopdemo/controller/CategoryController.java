@@ -33,6 +33,16 @@ public class CategoryController {
     }
 
     /**
+     * 获取所有分类（根路径）
+     * @return 分类列表
+     */
+    @GetMapping
+    @Operation(summary = "获取所有分类", description = "获取系统中所有商品分类")
+    public Result<List<Category>> getAllCategoriesRoot() {
+        return Result.success(categoryService.getAllCategories());
+    }
+
+    /**
      * 根据ID获取分类
      * @param id 分类ID
      * @return 分类对象

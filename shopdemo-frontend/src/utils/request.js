@@ -11,7 +11,7 @@ request.interceptors.request.use(
   config => {
     const userStore = useUserStore()
     if (userStore.token && !config.url.includes('/login') && !config.url.includes('/register')) {
-      config.headers.Authorization = userStore.token
+      config.headers.Authorization = 'Bearer ' + userStore.token
     }
     return config
   },
@@ -40,7 +40,7 @@ request.interceptors.response.use(
       } else if (status === 403) {
         ElMessage.error('没有权限访问')
       } else if (status === 500) {
-        ElMessage.error('服务器错误')
+        ElMessage.error(error.response.data.message || '服务器错误')
       } else {
         ElMessage.error(error.response.data.message || '请求失败')
       }

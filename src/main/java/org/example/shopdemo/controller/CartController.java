@@ -94,4 +94,13 @@ public class CartController {
         cartService.clearCart(userId);
         return Result.success("清空成功", null);
     }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "刷新购物车", description = "强制刷新购物车缓存")
+    public Result<List<CartDTO>> refreshCart(@Parameter(hidden = true) @RequestHeader("Authorization") String token) {
+        String actualToken = org.example.shopdemo.utils.jwtutil.extractToken(token);
+        Long userId = org.example.shopdemo.utils.jwtutil.getUserIdFromToken(actualToken);
+        cartService.clearCartCache(userId);
+        return Result.success(cartService.getUserCart(userId));
+    }
 }

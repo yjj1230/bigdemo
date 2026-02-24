@@ -224,4 +224,31 @@ public class ProductController {
         productService.setStock(id, stock);
         return Result.success("更新成功", null);
     }
+
+    /**
+     * 高级筛选商品
+     * @param keyword 关键词
+     * @param categoryId 分类ID
+     * @param minPrice 最低价格
+     * @param maxPrice 最高价格
+     * @param sortBy 排序方式：price_asc, price_desc, sales_desc, time_desc
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 分页结果
+     */
+    @GetMapping("/filter")
+    @Operation(summary = "高级筛选商品", description = "根据多个条件筛选商品")
+    public Result<PageResponse<Product>> filterProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false, defaultValue = "time_desc") String sortBy,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        PageRequest pageRequest = new PageRequest();
+        pageRequest.setPageNum(pageNum);
+        pageRequest.setPageSize(pageSize);
+        return Result.success(productService.filterProducts(keyword, categoryId, minPrice, maxPrice, sortBy, pageRequest));
+    }
 }

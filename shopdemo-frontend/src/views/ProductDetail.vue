@@ -53,6 +53,33 @@
               <el-tag type="success">库存: {{ product.stock }}</el-tag>
             </div>
             
+            <!-- 评价统计信息 -->
+            <div class="review-stats" v-if="reviewStatistics">
+              <div class="stats-header">
+                <div class="rating-average">
+                  <span class="average-score">{{ reviewStatistics.averageRating.toFixed(1) }}</span>
+                  <el-rate 
+                    v-model="reviewStatistics.averageRating" 
+                    disabled 
+                    :score-template="'{value}'"
+                  />
+                </div>
+                <span class="review-count">({{ reviewStatistics.totalCount }}条评价)</span>
+              </div>
+              <div class="rating-distribution">
+                <div v-for="item in [5, 4, 3, 2, 1]" :key="item" class="rating-item">
+                  <span class="rating-star">{{ item }}星</span>
+                  <div class="rating-bar-container">
+                    <div 
+                      class="rating-bar" 
+                      :style="{ width: getRatingPercentage(item) + '%' }"
+                    ></div>
+                  </div>
+                  <span class="rating-count">{{ getRatingCount(item) }}</span>
+                </div>
+              </div>
+            </div>
+            
             <div class="description">
               <h3>商品描述</h3>
               <p>{{ product.description }}</p>
@@ -97,19 +124,35 @@
         <template #header>
           <div class="reviews-header">
             <h3>商品评价</h3>
-            <el-button 
-              v-if="canUserReview" 
-              type="primary" 
-              size="small"
-              @click="reviewDialogVisible = true"
-            >
-              写评价
-            </el-button>
+            <div class="review-controls">
+              <el-select v-model="reviewFilter" placeholder="筛选评价" size="small" style="margin-right: 10px;">
+                <el-option label="全部评价" value="all" />
+                <el-option label="5星" value="5" />
+                <el-option label="4星" value="4" />
+                <el-option label="3星" value="3" />
+                <el-option label="2星" value="2" />
+                <el-option label="1星" value="1" />
+              </el-select>
+              <el-select v-model="reviewSort" placeholder="排序方式" size="small">
+                <el-option label="最新评价" value="latest" />
+                <el-option label="评分最高" value="highest" />
+                <el-option label="评分最低" value="lowest" />
+              </el-select>
+              <el-button 
+                v-if="canUserReview" 
+                type="primary" 
+                size="small"
+                @click="reviewDialogVisible = true"
+                style="margin-left: 10px;"
+              >
+                写评价
+              </el-button>
+            </div>
           </div>
         </template>
-        <el-empty v-if="reviews.length === 0" description="暂无评价" />
+        <el-empty v-if="filteredReviews.length === 0" description="暂无评价" />
         <div v-else class="review-list">
-          <div v-for="review in reviews" :key="review.id" class="review-item">
+          <div v-for="review in filteredReviews" :key="review.id" class="review-item">
             <div class="review-header">
               <span class="username">{{ review.username }}</span>
               <span class="time">{{ review.createTime }}</span>
@@ -140,7 +183,7 @@
         </el-form>
         <template #footer>
           <el-button @click="reviewDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitReview">提交评价</el-button>
+          <el-button type="primary" @click="submitReview" :loading="submittingReview">提交评价</el-button>
         </template>
       </el-dialog>
     </el-main>
@@ -148,12 +191,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { getProductDetail, getReviews, addReview, addFavorite, removeFavorite, canReview, getFavorites } from '@/api/product'
+import { getProductDetail, getReviews, addReview, addFavorite, removeFavorite, canReview, getFavorites, getReviewStatistics } from '@/api/product'
 import { addToCart as addToCartApi } from '@/api/cart'
 
 const route = useRoute()
@@ -163,6 +206,7 @@ const userStore = useUserStore()
 const product = ref(null)
 const quantity = ref(1)
 const reviews = ref([])
+const reviewStatistics = ref(null) // 评价统计数据
 const isFavorited = ref(false)
 const canUserReview = ref(false)
 const reviewDialogVisible = ref(false)
@@ -170,10 +214,14 @@ const reviewForm = ref({
   rating: 5,
   content: ''
 })
+const reviewFilter = ref('all') // 评价筛选
+const reviewSort = ref('latest') // 评价排序
+const submittingReview = ref(false) // 评价提交加载状态
 
 onMounted(async () => {
   await loadProduct()
   await loadReviews()
+  await loadReviewStatistics()
   if (userStore.token) {
     await checkCanReview()
     await checkFavorite()
@@ -207,6 +255,41 @@ const loadReviews = async () => {
     ElMessage.error({ message: '获取评价失败', duration: 800 })
   }
 }
+
+const loadReviewStatistics = async () => {
+  try {
+    const id = route.params.id
+    reviewStatistics.value = await getReviewStatistics(id)
+  } catch (error) {
+    console.error('获取评价统计数据失败:', error)
+    reviewStatistics.value = null
+  }
+}
+
+// 计算过滤和排序后的评价列表
+const filteredReviews = computed(() => {
+  let result = [...reviews.value]
+  
+  // 筛选评价
+  if (reviewFilter.value !== 'all') {
+    result = result.filter(review => review.rating === Number(reviewFilter.value))
+  }
+  
+  // 排序评价
+  switch (reviewSort.value) {
+    case 'latest':
+      result.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+      break
+    case 'highest':
+      result.sort((a, b) => b.rating - a.rating)
+      break
+    case 'lowest':
+      result.sort((a, b) => a.rating - b.rating)
+      break
+  }
+  
+  return result
+})
 
 const checkCanReview = async () => {
   try {
@@ -260,6 +343,7 @@ const submitReview = async () => {
     ElMessage.warning({ message: '请输入评价内容', duration: 800 })
     return
   }
+  submittingReview.value = true
   try {
     await addReview({
       productId: product.value.id,
@@ -270,10 +354,33 @@ const submitReview = async () => {
     reviewDialogVisible.value = false
     reviewForm.value = { rating: 5, content: '' }
     await loadReviews()
+    await loadReviewStatistics() // 重新加载评价统计数据
     canUserReview.value = false
   } catch (error) {
     ElMessage.error({ message: error.message || '评价失败', duration: 800 })
+  } finally {
+    submittingReview.value = false
   }
+}
+
+const getRatingPercentage = (rating) => {
+  if (!reviewStatistics.value || !reviewStatistics.value.ratingDistribution) {
+    return 0
+  }
+  const totalCount = reviewStatistics.value.totalCount
+  if (totalCount === 0) return 0
+  
+  const ratingItem = reviewStatistics.value.ratingDistribution.find(item => item.rating === rating)
+  const count = ratingItem ? ratingItem.count : 0
+  return (count / totalCount) * 100
+}
+
+const getRatingCount = (rating) => {
+  if (!reviewStatistics.value || !reviewStatistics.value.ratingDistribution) {
+    return 0
+  }
+  const ratingItem = reviewStatistics.value.ratingDistribution.find(item => item.rating === rating)
+  return ratingItem ? ratingItem.count : 0
 }
 
 const handleCommand = async (command) => {
@@ -409,6 +516,77 @@ const handleCommand = async (command) => {
   font-weight: bold;
 }
 
+/* 评价统计样式 */
+.review-stats {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.rating-average {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.average-score {
+  font-size: 24px;
+  font-weight: bold;
+  color: #f56c6c;
+}
+
+.review-count {
+  color: #909399;
+  font-size: 14px;
+}
+
+.rating-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rating-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-star {
+  width: 40px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.rating-bar-container {
+  flex: 1;
+  height: 8px;
+  background-color: #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rating-bar {
+  height: 100%;
+  background-color: #f56c6c;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.rating-distribution .rating-count {
+  width: 40px;
+  text-align: right;
+  font-size: 12px;
+  color: #909399;
+}
+
 .description {
   margin: 30px 0;
 }
@@ -436,6 +614,11 @@ const handleCommand = async (command) => {
 .reviews-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.review-controls {
+  display: flex;
   align-items: center;
 }
 

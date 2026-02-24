@@ -9,7 +9,9 @@ import java.util.List;
 public interface UserMapper {
     int insert(User user);
     User findByUsername(String username);
+    User findByEmail(String email);
     User findById(Long id);
     int update(User user);
+    int deleteById(Long id);
     List<User> findAll();
 }

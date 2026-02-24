@@ -43,9 +43,22 @@ public class ProductReviewService {
         if (!hasUserPurchasedProduct(review.getUserId(), review.getProductId())) {
             throw new RuntimeException("只有购买过该商品的用户才能评价");
         }
+        if (hasUserReviewedProduct(review.getUserId(), review.getProductId())) {
+            throw new RuntimeException("您已经评价过该商品，不能重复评价");
+        }
         productReviewMapper.insert(review);
         clearReviewCache(review.getProductId());
         return review.getId();
+    }
+
+    /**
+     * 检查用户是否已经评价过指定商品
+     * @param userId 用户ID
+     * @param productId 商品ID
+     * @return 如果已评价过返回true，否则返回false
+     */
+    public boolean hasUserReviewedProduct(Long userId, Long productId) {
+        return productReviewMapper.hasUserReviewedProduct(userId, productId);
     }
 
     /**

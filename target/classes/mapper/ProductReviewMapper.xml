@@ -83,4 +83,10 @@
         GROUP BY rating 
         ORDER BY rating DESC
     </select>
+    
+    <select id="hasUserReviewedProduct" resultType="Boolean">
+        SELECT COUNT(*) > 0 
+        FROM product_review 
+        WHERE user_id = #{userId} AND product_id = #{productId}
+    </select>
 </mapper>

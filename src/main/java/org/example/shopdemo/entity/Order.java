@@ -15,6 +15,12 @@ public class Order {
     private String orderNo;
     /** 用户ID */
     private Long userId;
+    /** 优惠券ID */
+    private Long couponId;
+    /** 原始金额 */
+    private BigDecimal originalAmount;
+    /** 优惠券折扣金额 */
+    private BigDecimal couponDiscount;
     /** 订单总金额 */
     private BigDecimal totalAmount;
     /** 实付金额 */

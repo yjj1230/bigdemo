@@ -34,16 +34,20 @@ public class UserController {
     @RateLimiter(time = 60, count = 5, limitType = RateLimiter.LimitType.IP, message = "登录请求过于频繁，请稍后再试")
     @Operation(summary = "用户登录", description = "用户使用用户名和密码登录，成功后返回JWT token")
     public Result<java.util.Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
-        String token = userService.login(request);
-        // 直接从数据库获取用户信息，避免Redis缓存问题
-        org.example.shopdemo.entity.User user = userService.getUserInfoFromDatabase(request.getUsername());
-        user.setPassword(null);
-        // 构建返回对象
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("token", token);
-        result.put("user", user);
-        result.put("role", user.getRole() == 1 ? "ADMIN" : "USER");
-        return Result.success("登录成功", result);
+        try {
+            String token = userService.login(request);
+            // 直接从数据库获取用户信息，避免Redis缓存问题
+            User user = userService.getUserInfoFromDatabase(request.getUsername());
+            user.setPassword(null);
+            // 构建返回对象
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("token", token);
+            result.put("user", user);
+            result.put("role", user.getRole() == 1 ? "ADMIN" : "USER");
+            return Result.success("登录成功", result);
+        } catch (Exception e) {
+            return Result.error(500, e.getMessage());
+        }
     }
 
     /**
@@ -166,5 +170,32 @@ public class UserController {
         org.example.shopdemo.enums.UserRole role = org.example.shopdemo.enums.UserRole.valueOf(roleStr);
         userService.updateUserRole(userId, role);
         return Result.success("角色更新成功", null);
+    }
+
+    /**
+     * 删除用户（管理员功能）
+     * @param userId 用户ID
+     * @return 操作结果
+     */
+    @DeleteMapping("/{userId}")
+    @RequireAdmin
+    @Operation(summary = "删除用户", description = "删除指定用户（管理员功能）")
+    public Result<Void> deleteUser(@PathVariable Long userId) {
+        userService.deleteUser(userId);
+        return Result.success("删除成功", null);
+    }
+
+    /**
+     * 更新用户信息（管理员功能）
+     * @param userId 用户ID
+     * @param user 用户信息
+     * @return 操作结果
+     */
+    @PutMapping("/{userId}")
+    @RequireAdmin
+    @Operation(summary = "更新用户信息", description = "更新指定用户的信息（管理员功能）")
+    public Result<Void> updateUserById(@PathVariable Long userId, @RequestBody User user) {
+        userService.updateUserById(userId, user);
+        return Result.success("更新成功", null);
     }
 }

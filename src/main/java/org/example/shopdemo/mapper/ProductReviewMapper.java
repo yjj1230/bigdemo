@@ -26,4 +26,12 @@ public interface ProductReviewMapper {
      * @return 各星级评价数量的列表，格式为：[{"rating": 5, "count": 10}, {"rating": 4, "count": 5}, ...]
      */
     List<java.util.Map<String, Object>> getRatingDistribution(Long productId);
+    
+    /**
+     * 检查用户是否已经评价过指定商品
+     * @param userId 用户ID
+     * @param productId 商品ID
+     * @return 如果已评价过返回true，否则返回false
+     */
+    boolean hasUserReviewedProduct(@Param("userId") Long userId, @Param("productId") Long productId);
 }

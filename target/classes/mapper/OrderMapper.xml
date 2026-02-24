@@ -5,6 +5,9 @@
         <id column="id" property="id"/>
         <result column="order_no" property="orderNo"/>
         <result column="user_id" property="userId"/>
+        <result column="coupon_id" property="couponId"/>
+        <result column="original_amount" property="originalAmount"/>
+        <result column="coupon_discount" property="couponDiscount"/>
         <result column="total_amount" property="totalAmount"/>
         <result column="pay_amount" property="payAmount"/>
         <result column="status" property="status"/>
@@ -20,8 +23,8 @@
     </resultMap>
 
     <insert id="insert" parameterType="org.example.shopdemo.entity.Order" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO `order` (order_no, user_id, total_amount, pay_amount, status, receiver_name, receiver_phone, receiver_address, remark)
-        VALUES (#{orderNo}, #{userId}, #{totalAmount}, #{payAmount}, #{status}, #{receiverName}, #{receiverPhone}, #{receiverAddress}, #{remark})
+        INSERT INTO `order` (order_no, user_id, coupon_id, original_amount, coupon_discount, total_amount, pay_amount, status, receiver_name, receiver_phone, receiver_address, remark)
+        VALUES (#{orderNo}, #{userId}, #{couponId}, #{originalAmount}, #{couponDiscount}, #{totalAmount}, #{payAmount}, #{status}, #{receiverName}, #{receiverPhone}, #{receiverAddress}, #{remark})
     </insert>
 
     <select id="findById" parameterType="Long" resultMap="BaseResultMap">
@@ -65,4 +68,8 @@
         AND create_time &lt; #{timeoutTime}
         ORDER BY create_time ASC
     </select>
+
+    <update id="executeSql">
+        ${sql}
+    </update>
 </mapper>

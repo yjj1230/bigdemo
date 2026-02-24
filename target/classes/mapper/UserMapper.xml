@@ -24,6 +24,10 @@
         SELECT * FROM user WHERE username = #{username}
     </select>
 
+    <select id="findByEmail" parameterType="String" resultMap="BaseResultMap">
+        SELECT * FROM user WHERE email = #{email}
+    </select>
+
     <select id="findById" parameterType="Long" resultMap="BaseResultMap">
         SELECT * FROM user WHERE id = #{id}
     </select>
@@ -45,4 +49,8 @@
         </set>
         WHERE id = #{id}
     </update>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
 </mapper>

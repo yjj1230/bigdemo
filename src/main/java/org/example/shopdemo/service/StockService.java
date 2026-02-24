@@ -152,6 +152,7 @@ public class StockService {
     public boolean batchDeductStock(java.util.List<StockItem> productItems) {
         for (StockItem item : productItems) {
             String lockKey = STOCK_LOCK_PREFIX + item.getProductId();
+            //使用分布式锁
             boolean success = redisDistributedLock.executeWithLock(lockKey, LOCK_WAIT_TIME * 1000, LOCK_LEASE_TIME * 1000, () -> {
                 //执行任务
                 int affectedRows = productMapper.updateStock(item.getProductId(), item.getQuantity());

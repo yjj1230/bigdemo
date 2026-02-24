@@ -79,3 +79,18 @@ export const canReview = (productId) => {
     method: 'get'
   })
 }
+
+export const getReviewStatistics = (productId) => {
+  return request({
+    url: `/reviews/statistics/${productId}`,
+    method: 'get'
+  })
+}
+
+export const filterProducts = (params) => {
+  return request({
+    url: '/product/filter',
+    method: 'get',
+    params
+  })
+}

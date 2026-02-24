@@ -21,6 +21,7 @@ public interface ProductMapper {
     int updateStock(@Param("id") Long id, @Param("quantity") Integer quantity);
     int setStock(@Param("id") Long id, @Param("stock") Integer stock);
     int increaseStock(@Param("id") Long id, @Param("quantity") Integer quantity);
+    int increaseSales(@Param("id") Long id, @Param("quantity") Integer quantity);
     Integer getStockById(@Param("id") Long id);
     List<Product> findAllByPage(@Param("offset") Integer offset, @Param("pageSize") Integer pageSize);
     List<Product> findByCategoryIdByPage(@Param("categoryId") Long categoryId, @Param("offset") Integer offset, @Param("pageSize") Integer pageSize);
@@ -29,4 +30,9 @@ public interface ProductMapper {
     Long countByCategoryId(Long categoryId);
     Long countByKeyword(@Param("keyword") String keyword);
     List<Product> findRecommendations(@Param("limit") Integer limit);
+    List<Product> filterProducts(@Param("keyword") String keyword, @Param("categoryId") Long categoryId, 
+                                  @Param("minPrice") Double minPrice, @Param("maxPrice") Double maxPrice, 
+                                  @Param("sortBy") String sortBy, @Param("offset") Integer offset, @Param("pageSize") Integer pageSize);
+    Long countFilterProducts(@Param("keyword") String keyword, @Param("categoryId") Long categoryId, 
+                             @Param("minPrice") Double minPrice, @Param("maxPrice") Double maxPrice);
 }

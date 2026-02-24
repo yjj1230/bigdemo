@@ -198,6 +198,14 @@ public class ProductService {
     }
     
     /**
+     * 清除推荐商品缓存
+     */
+    public void clearRecommendationsCache() {
+        String cacheKey = AdvancedRedisCacheService.generateKey(PRODUCT_LIST_CACHE_PREFIX, "recommendations");
+        advancedRedisCacheService.delete(cacheKey);
+    }
+    
+    /**
      * 分页查询所有商品
      * @param pageRequest 分页请求
      * @return 分页响应
@@ -301,5 +309,21 @@ public class ProductService {
         return advancedRedisCacheService.getWithFullProtection(cacheKey, 
                 () -> productMapper.findRecommendations(10), 
                 30, java.util.concurrent.TimeUnit.MINUTES);
+    }
+
+    /**
+     * 高级筛选商品
+     * @param keyword 关键词
+     * @param categoryId 分类ID
+     * @param minPrice 最低价格
+     * @param maxPrice 最高价格
+     * @param sortBy 排序方式
+     * @param pageRequest 分页请求
+     * @return 分页响应
+     */
+    public PageResponse<Product> filterProducts(String keyword, Long categoryId, Double minPrice, Double maxPrice, String sortBy, PageRequest pageRequest) {
+        List<Product> products = productMapper.filterProducts(keyword, categoryId, minPrice, maxPrice, sortBy, pageRequest.getOffset(), pageRequest.getPageSize());
+        Long total = productMapper.countFilterProducts(keyword, categoryId, minPrice, maxPrice);
+        return PageResponse.of(products, pageRequest.getPageNum(), pageRequest.getPageSize(), total);
     }
 }

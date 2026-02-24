@@ -36,3 +36,10 @@ export const clearCart = () => {
     method: 'delete'
   })
 }
+
+export const refreshCart = () => {
+  return request({
+    url: '/cart/refresh',
+    method: 'post'
+  })
+}

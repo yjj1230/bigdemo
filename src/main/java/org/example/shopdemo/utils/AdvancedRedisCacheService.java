@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 /**
  * 高级Redis缓存服务
  * 提供分布式锁、缓存击穿、缓存雪崩防护功能
+ * 用于productservice
  */
 @Slf4j
 @Service

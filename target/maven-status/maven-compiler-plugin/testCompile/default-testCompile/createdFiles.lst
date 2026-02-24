@@ -1,1 +1,13 @@
+org\example\shopdemo\RegisterApiTest.class
+org\example\shopdemo\UpdateOrderTableTest.class
+org\example\shopdemo\CouponDataTest.class
+org\example\shopdemo\FixCouponTimeTest.class
+org\example\shopdemo\UserTableTest.class
+org\example\shopdemo\DeleteDuplicateUserTest.class
+org\example\shopdemo\RegisterTest.class
+org\example\shopdemo\CouponReceiveSimulationTest.class
+org\example\shopdemo\UserCouponCheckTest.class
+org\example\shopdemo\CouponReceiveTest.class
+org\example\shopdemo\CouponTableTest.class
 org\example\shopdemo\ShopdemoApplicationTests.class
+org\example\shopdemo\ResetCouponDataTest.class

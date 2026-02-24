@@ -105,6 +105,8 @@
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column prop="username" label="用户名" />
             <el-table-column prop="email" label="邮箱" />
+            <el-table-column prop="phone" label="手机号" />
+            <el-table-column prop="nickname" label="昵称" />
             <el-table-column prop="role" label="角色" width="100">
               <template #default="{ row }">
                 <el-tag :type="row.role === 'ADMIN' ? 'danger' : 'success'">
@@ -112,14 +114,36 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200">
+            <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
+                <el-tag :type="row.status === 1 ? 'success' : 'danger'">
+                  {{ row.status === 1 ? '正常' : '禁用' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="300">
+              <template #default="{ row }">
+                <el-button
+                  size="small"
+                  @click="editUser(row)"
+                  v-if="row.username !== 'admin'"
+                >
+                  编辑
+                </el-button>
                 <el-button
                   size="small"
                   @click="changeUserRole(row)"
                   v-if="row.username !== 'admin'"
                 >
                   切换角色
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  @click="deleteUser(row.id)"
+                  v-if="row.username !== 'admin'"
+                >
+                  删除
                 </el-button>
               </template>
             </el-table-column>
@@ -174,6 +198,37 @@
         <el-button type="primary" @click="saveStock">确定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="userDialogVisible"
+      title="编辑用户"
+      width="500px"
+    >
+      <el-form :model="userForm" label-width="100px">
+        <el-form-item label="用户名">
+          <el-input v-model="userForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="userForm.email" />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="userForm.phone" />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="userForm.nickname" />
+        </el-form-item>
+        <el-form-item label="头像">
+          <el-input v-model="userForm.avatar" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="userForm.status" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="userDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveUser">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -194,7 +249,9 @@ import {
   getAllOrders,
   shipOrder as shipOrderApi,
   getAllUsers,
-  updateUserRole
+  updateUserRole,
+  deleteUser as deleteUserApi,
+  updateUserById
 } from '@/api/admin'
 
 const router = useRouter()
@@ -220,6 +277,17 @@ const productForm = ref({
 
 const stockForm = ref({
   stock: 0
+})
+
+const userDialogVisible = ref(false)
+const userForm = ref({
+  id: null,
+  username: '',
+  email: '',
+  phone: '',
+  nickname: '',
+  avatar: '',
+  status: 1
 })
 
 const loadProducts = async () => {
@@ -405,6 +473,47 @@ const changeUserRole = async (user) => {
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error({ message: '角色切换失败', duration: 800 })
+    }
+  }
+}
+
+const editUser = (user) => {
+  userForm.value = {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    phone: user.phone,
+    nickname: user.nickname,
+    avatar: user.avatar,
+    status: user.status
+  }
+  userDialogVisible.value = true
+}
+
+const saveUser = async () => {
+  try {
+    await updateUserById(userForm.value.id, userForm.value)
+    ElMessage.success({ message: '更新成功', duration: 800 })
+    userDialogVisible.value = false
+    loadUsers()
+  } catch (error) {
+    ElMessage.error({ message: '更新失败', duration: 800 })
+  }
+}
+
+const deleteUser = async (userId) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该用户吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await deleteUserApi(userId)
+    ElMessage.success({ message: '删除成功', duration: 800 })
+    loadUsers()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error({ message: '删除失败', duration: 800 })
     }
   }
 }

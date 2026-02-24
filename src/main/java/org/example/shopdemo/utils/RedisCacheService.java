@@ -1,5 +1,6 @@
 package org.example.shopdemo.utils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,7 @@ import java.util.concurrent.TimeUnit;
  * Redis缓存服务
  * 提供Redis缓存操作功能
  */
+@Slf4j
 @Service
 public class RedisCacheService {
     
@@ -24,7 +26,11 @@ public class RedisCacheService {
      * @param value 缓存值
      */
     public void set(String key, Object value) {
-        redisTemplate.opsForValue().set(key, value, DEFAULT_EXPIRE_TIME, TimeUnit.MINUTES);
+        try {
+            redisTemplate.opsForValue().set(key, value, DEFAULT_EXPIRE_TIME, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.warn("Redis set operation failed: {}", e.getMessage());
+        }
     }
     
     /**
@@ -35,7 +41,11 @@ public class RedisCacheService {
      * @param timeUnit 时间单位
      */
     public void set(String key, Object value, long timeout, TimeUnit timeUnit) {
-        redisTemplate.opsForValue().set(key, value, timeout, timeUnit);
+        try {
+            redisTemplate.opsForValue().set(key, value, timeout, timeUnit);
+        } catch (Exception e) {
+            log.warn("Redis set operation failed: {}", e.getMessage());
+        }
     }
     
     /**
@@ -44,7 +54,12 @@ public class RedisCacheService {
      * @return 缓存值
      */
     public Object get(String key) {
-        return redisTemplate.opsForValue().get(key);
+        try {
+            return redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.warn("Redis get operation failed: {}", e.getMessage());
+            return null;
+        }
     }
     
     /**
@@ -52,7 +67,11 @@ public class RedisCacheService {
      * @param key 缓存键
      */
     public void delete(String key) {
-        redisTemplate.delete(key);
+        try {
+            redisTemplate.delete(key);
+        } catch (Exception e) {
+            log.warn("Redis delete operation failed: {}", e.getMessage());
+        }
     }
     
     /**
@@ -61,7 +80,12 @@ public class RedisCacheService {
      * @return 是否存在
      */
     public Boolean hasKey(String key) {
-        return redisTemplate.hasKey(key);
+        try {
+            return redisTemplate.hasKey(key);
+        } catch (Exception e) {
+            log.warn("Redis hasKey operation failed: {}", e.getMessage());
+            return false;
+        }
     }
     
     /**
@@ -70,7 +94,11 @@ public class RedisCacheService {
      * @param value 缓存值
      */
     public void setForever(String key, Object value) {
-        redisTemplate.opsForValue().set(key, value);
+        try {
+            redisTemplate.opsForValue().set(key, value);
+        } catch (Exception e) {
+            log.warn("Redis setForever operation failed: {}", e.getMessage());
+        }
     }
     
     /**
@@ -107,6 +135,10 @@ public class RedisCacheService {
      * @param pattern 缓存键模式
      */
     public void deleteByPattern(String pattern) {
-        redisTemplate.delete(redisTemplate.keys(pattern));
+        try {
+            redisTemplate.delete(redisTemplate.keys(pattern));
+        } catch (Exception e) {
+            log.warn("Redis deleteByPattern operation failed: {}", e.getMessage());
+        }
     }
 }

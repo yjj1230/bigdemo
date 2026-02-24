@@ -40,10 +40,8 @@
     </delete>
 
     <select id="getHotSearchKeywords" resultMap="BaseResultMap">
-        SELECT keyword, SUM(search_count) as total_count
-        FROM search_history
-        GROUP BY keyword
-        ORDER BY total_count DESC, last_search_time DESC
+        SELECT * FROM search_history
+        ORDER BY search_count DESC, last_search_time DESC
         LIMIT #{limit}
     </select>
 </mapper>

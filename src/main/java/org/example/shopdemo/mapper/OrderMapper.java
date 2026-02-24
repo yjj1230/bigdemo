@@ -17,4 +17,5 @@ public interface OrderMapper {
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
     int deleteById(Long id);
     List<Order> findTimeoutOrders(@Param("timeoutTime") java.time.LocalDateTime timeoutTime);
+    void executeSql(@Param("sql") String sql);
 }

@@ -33,6 +33,9 @@ public class OrderService {
     private ProductMapper productMapper;
 
     @Autowired
+    private ProductService productService;
+
+    @Autowired
     private AddressMapper addressMapper;
 
     @Autowired
@@ -48,12 +51,74 @@ public class OrderService {
     private WebSocketMessageService webSocketMessageService;
     
     @Autowired
+    private CouponService couponService;
+    
+    @Autowired
+    private UserCouponMapper userCouponMapper;
+    
+    @Autowired
+    private CouponMapper couponMapper;
+    
+    @Autowired
     private WeChatPayService weChatPayService;
     
     private static final String ORDER_CACHE_PREFIX = "order";
     private static final String ORDER_LIST_CACHE_PREFIX = "order_list";
     private static final String ORDER_ITEM_CACHE_PREFIX = "order_item";
     private static final int ORDER_TIMEOUT_MINUTES = 15;
+
+    /**
+     * 验证并计算优惠券折扣
+     * @param userId 用户ID
+     * @param couponId 优惠券ID
+     * @param orderAmount 订单金额
+     * @return 折扣金额
+     */
+    private BigDecimal validateAndCalculateCouponDiscount(Long userId, Long couponId, BigDecimal orderAmount) {
+        if (couponId == null) {
+            return BigDecimal.ZERO;
+        }
+        
+        UserCoupon userCoupon = userCouponMapper.selectById(couponId);
+        if (userCoupon == null) {
+            throw new RuntimeException("优惠券不存在");
+        }
+        
+        if (!userCoupon.getUserId().equals(userId)) {
+            throw new RuntimeException("优惠券不属于当前用户");
+        }
+        
+        if (userCoupon.getStatus() != 1) {
+            throw new RuntimeException("优惠券不可用");
+        }
+        
+        Coupon coupon = couponMapper.selectById(userCoupon.getCouponId());
+        if (coupon == null) {
+            throw new RuntimeException("优惠券信息不存在");
+        }
+        
+        if (coupon.getStatus() != 2) {
+            throw new RuntimeException("优惠券已失效");
+        }
+        
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(coupon.getStartTime()) || now.isAfter(coupon.getEndTime())) {
+            throw new RuntimeException("优惠券不在有效期内");
+        }
+        
+        BigDecimal minAmount = coupon.getMinAmount();
+        if (minAmount != null && orderAmount.compareTo(minAmount) < 0) {
+            throw new RuntimeException("未达到最低消费金额：" + minAmount);
+        }
+        
+        BigDecimal discount = couponService.calculateDiscount(userCoupon, orderAmount);
+        
+        if (discount.compareTo(orderAmount) >= 0) {
+            throw new RuntimeException("优惠券金额不能大于订单金额");
+        }
+        
+        return discount;
+    }
 
     /**
      * 创建订单
@@ -63,11 +128,18 @@ public class OrderService {
      */
     @Transactional
     public Order createOrder(Long userId, CreateOrderRequest request) {
+        BigDecimal originalAmount = request.getTotalAmount();
+        BigDecimal couponDiscount = validateAndCalculateCouponDiscount(userId, request.getCouponId(), originalAmount);
+        BigDecimal payAmount = originalAmount.subtract(couponDiscount);
+        
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setUserId(userId);
-        order.setTotalAmount(request.getTotalAmount());
-        order.setPayAmount(request.getPayAmount());
+        order.setCouponId(request.getCouponId());
+        order.setOriginalAmount(originalAmount);
+        order.setCouponDiscount(couponDiscount);
+        order.setTotalAmount(originalAmount);
+        order.setPayAmount(payAmount);
         order.setStatus(OrderStatus.PENDING_PAYMENT.getCode());
         order.setReceiverName(request.getReceiverName());
         order.setReceiverPhone(request.getReceiverPhone());
@@ -90,9 +162,16 @@ public class OrderService {
             orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setTotalPrice(product.getPrice().multiply(new BigDecimal(itemRequest.getQuantity())));
             orderItemMapper.insert(orderItem);
+            
+            productMapper.increaseSales(product.getId(), itemRequest.getQuantity());
+        }
+        
+        if (request.getCouponId() != null) {
+            couponService.useCoupon(request.getCouponId(), order.getId());
         }
         
         clearOrderCache(order.getId(), userId);
+        productService.clearRecommendationsCache();
         return order;
     }
 
@@ -100,12 +179,18 @@ public class OrderService {
      * 从购物车创建订单
      * @param userId 用户ID
      * @param addressId 地址ID
+     * @param couponId 优惠券ID
      * @param remark 订单备注
      * @return 订单对象
      */
     @Transactional
-    public Order createOrderFromCart(Long userId, Long addressId, String remark) {
+    public Order createOrderFromCart(Long userId, Long addressId, Long couponId, String remark) {
+        System.out.println("=== 开始创建订单 ===");
+        System.out.println("用户ID: " + userId + ", 地址ID: " + addressId + ", 优惠券ID: " + couponId);
+        
         List<Cart> cartItems = cartMapper.findByUserId(userId);
+        System.out.println("购物车商品数量: " + cartItems.size());
+        
         if (cartItems.isEmpty()) {
             throw new RuntimeException("购物车为空");
         }
@@ -114,8 +199,13 @@ public class OrderService {
         if (address == null) {
             throw new RuntimeException("收货地址不存在");
         }
+        if (address.getReceiverName() == null || address.getReceiverPhone() == null || 
+            address.getProvince() == null || address.getCity() == null || 
+            address.getDistrict() == null || address.getDetailAddress() == null) {
+            throw new RuntimeException("收货地址信息不完整");
+        }
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal originalAmount = BigDecimal.ZERO;
         java.util.List<StockService.StockItem> stockItems = new ArrayList<>();
         
         for (Cart cart : cartItems) {
@@ -123,30 +213,46 @@ public class OrderService {
             if (product == null) {
                 throw new RuntimeException("商品不存在");
             }
+            if (product.getPrice() == null) {
+                throw new RuntimeException("商品价格未设置：" + product.getName());
+            }
             Integer currentStock = stockService.getStock(cart.getProductId());
             if (currentStock < cart.getQuantity()) {
                 throw new RuntimeException("商品库存不足：" + product.getName());
             }
-            totalAmount = totalAmount.add(product.getPrice().multiply(new BigDecimal(cart.getQuantity())));
+            originalAmount = originalAmount.add(product.getPrice().multiply(new BigDecimal(cart.getQuantity())));
             stockItems.add(new StockService.StockItem(cart.getProductId(), cart.getQuantity()));
         }
+
+        System.out.println("订单原始金额: " + originalAmount);
+        
+        BigDecimal couponDiscount = validateAndCalculateCouponDiscount(userId, couponId, originalAmount);
+        System.out.println("优惠券折扣: " + couponDiscount);
+        
+        BigDecimal payAmount = originalAmount.subtract(couponDiscount);
+        System.out.println("实际支付金额: " + payAmount);
 
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setUserId(userId);
-        order.setTotalAmount(totalAmount);
-        order.setPayAmount(totalAmount);
+        order.setCouponId(couponId);
+        order.setOriginalAmount(originalAmount);
+        order.setCouponDiscount(couponDiscount);
+        order.setTotalAmount(originalAmount);
+        order.setPayAmount(payAmount);
         order.setStatus(OrderStatus.PENDING_PAYMENT.getCode());
         order.setReceiverName(address.getReceiverName());
         order.setReceiverPhone(address.getReceiverPhone());
         order.setReceiverAddress(address.getProvince() + address.getCity() + address.getDistrict() + address.getDetailAddress());
         order.setRemark(remark);
         orderMapper.insert(order);
+        System.out.println("订单插入成功，订单ID: " + order.getId());
         
         boolean deductSuccess = stockService.batchDeductStock(stockItems);
         if (!deductSuccess) {
             throw new RuntimeException("库存扣减失败，请重试");
         }
+        System.out.println("库存扣减成功");
 
         for (Cart cart : cartItems) {
             Product product = productMapper.findById(cart.getProductId());
@@ -159,11 +265,22 @@ public class OrderService {
             orderItem.setQuantity(cart.getQuantity());
             orderItem.setTotalPrice(product.getPrice().multiply(new BigDecimal(cart.getQuantity())));
             orderItemMapper.insert(orderItem);
+            
+            productMapper.increaseSales(product.getId(), cart.getQuantity());
+        }
+        System.out.println("订单项插入成功，销量更新成功");
+        
+        if (couponId != null) {
+            couponService.useCoupon(couponId, order.getId());
+            System.out.println("优惠券使用成功");
         }
         
         cartMapper.deleteByUserId(userId);
+        System.out.println("购物车清空成功");
         
         clearOrderCache(order.getId(), userId);
+        productService.clearRecommendationsCache();
+        System.out.println("=== 订单创建完成 ===");
         return order;
     }
 

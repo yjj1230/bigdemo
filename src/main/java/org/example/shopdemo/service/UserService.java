@@ -202,6 +202,39 @@ public class UserService {
     }
 
     /**
+     * 删除用户（管理员功能）
+     * @param userId 用户ID
+     */
+    public void deleteUser(Long userId) {
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (user.getUsername().equals("admin")) {
+            throw new RuntimeException("不能删除管理员账户");
+        }
+        userMapper.deleteById(userId);
+        String cacheKey = RedisCacheService.generateKey(USER_CACHE_PREFIX, user.getUsername());
+        redisCacheService.delete(cacheKey);
+    }
+
+    /**
+     * 更新用户信息（管理员功能）
+     * @param userId 用户ID
+     * @param user 用户信息
+     */
+    public void updateUserById(Long userId, User user) {
+        User existUser = userMapper.findById(userId);
+        if (existUser == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        user.setId(userId);
+        userMapper.update(user);
+        String cacheKey = RedisCacheService.generateKey(USER_CACHE_PREFIX, existUser.getUsername());
+        redisCacheService.delete(cacheKey);
+    }
+
+    /**
      * 更新用户角色（管理员功能）
      * @param userId 用户ID
      * @param role 新角色
