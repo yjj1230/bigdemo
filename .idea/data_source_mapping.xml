@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/src/main/resources/sql/init.sql" value="c4d011f9-3687-484e-a458-99d68930e314" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/sql/optimize_indexes.sql" value="c4d011f9-3687-484e-a458-99d68930e314" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/sql/update_product_images.sql" value="c4d011f9-3687-484e-a458-99d68930e314" />
+  </component>
+</project>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.shopdemo.mapper.SearchHistoryMapper">
+    <resultMap id="BaseResultMap" type="org.example.shopdemo.entity.SearchHistory">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="keyword" property="keyword"/>
+        <result column="search_count" property="searchCount"/>
+        <result column="last_search_time" property="lastSearchTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="org.example.shopdemo.entity.SearchHistory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO search_history (user_id, keyword, search_count, last_search_time)
+        VALUES (#{userId}, #{keyword}, 1, NOW())
+    </insert>
+
+    <select id="findByUserId" resultMap="BaseResultMap">
+        SELECT * FROM search_history 
+        WHERE user_id = #{userId}
+        ORDER BY last_search_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateSearchHistory">
+        UPDATE search_history 
+        SET search_count = search_count + 1, 
+            last_search_time = NOW(),
+            update_time = NOW()
+        WHERE user_id = #{userId} AND keyword = #{keyword}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM search_history WHERE id = #{id}
+    </delete>
+
+    <delete id="clearByUserId" parameterType="Long">
+        DELETE FROM search_history WHERE user_id = #{userId}
+    </delete>
+
+    <select id="getHotSearchKeywords" resultMap="BaseResultMap">
+        SELECT keyword, SUM(search_count) as total_count
+        FROM search_history
+        GROUP BY keyword
+        ORDER BY total_count DESC, last_search_time DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

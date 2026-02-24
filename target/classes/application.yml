@@ -1,0 +1,93 @@
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+spring:
+  ai:
+    deepseek:
+      api-key: sk-2b59ed31a68a4b66b4d2e13a8920b8a8
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 1.6
+    zhipuai:
+      api-key: a0023d938bb44452af4155fe2f1d9516.uu5X4jQHAFkwFx6Y
+      base-url: https://open.bigmodel.cn/api/paas
+      embedding:
+        options:
+          model: embedding-2
+      chat:
+        options:
+          model: glm-4-air
+  main:
+    allow-bean-definition-overriding: true
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/users?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+    username: root
+    password: 123456
+  data:
+    jdbc:
+      repositories:
+        enabled: false
+    redis:
+      password: 123456
+      host: localhost
+      port: 6379
+      timeout: 10000
+      database: 0
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+    publisher-confirm-type: correlated
+    publisher-returns: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.example.shopdemo.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 微信支付配置
+wechat:
+  pay:
+    # 商户号（请替换为您的商户号）
+    mch-id: YOUR_MCH_ID
+    # 商户API私钥文件路径（请替换为您的私钥文件路径）
+    private-key-path: /path/to/your/apiclient_key.pem
+    # 商户证书序列号（请替换为您的证书序列号）
+    merchant-serial-number: YOUR_MERCHANT_SERIAL_NUMBER
+    # 商户API v3密钥（请替换为您的API v3密钥）
+    api-v3-key: YOUR_API_V3_KEY
+    # 微信支付平台证书路径（可选）
+    platform-cert-path: /path/to/your/platform_cert.pem
+    # 应用ID（请替换为您的应用ID）
+    app-id: YOUR_APP_ID
+    # 支付结果通知URL
+    notify-url: http://your-domain.com/api/payment/notify
+    # 支付成功跳转URL
+    return-url: http://your-domain.com/payment/success
+#  在使用前，请修改 application.yml 中的配置：
+#
+#  1. 商户号 ：在微信商户平台获取
+#  2. 私钥文件 ：下载商户API私钥
+#  3. 证书序列号 ：在商户平台查看
+#  4. API v3密钥 ：在商户平台设置
+#  5. 应用ID ：在微信开放平台获取
+#  6. 通知URL ：修改为您的服务器地址

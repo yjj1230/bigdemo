@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.shopdemo.mapper.ProductReviewMapper">
+    <resultMap id="BaseResultMap" type="org.example.shopdemo.entity.ProductReview">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="rating" property="rating"/>
+        <result column="content" property="content"/>
+        <result column="images" property="images"/>
+        <result column="is_anonymous" property="isAnonymous"/>
+        <result column="reply" property="reply"/>
+        <result column="reply_time" property="replyTime"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="org.example.shopdemo.entity.ProductReview" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO product_review (product_id, user_id, username, rating, content, images, is_anonymous, like_count)
+        VALUES (#{productId}, #{userId}, #{username}, #{rating}, #{content}, #{images}, #{isAnonymous}, 0)
+    </insert>
+
+    <select id="findById" parameterType="Long" resultMap="BaseResultMap">
+        SELECT * FROM product_review WHERE id = #{id}
+    </select>
+
+    <select id="findByProductId" resultMap="BaseResultMap">
+        SELECT * FROM product_review 
+        WHERE product_id = #{productId}
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="findByUserId" resultMap="BaseResultMap">
+        SELECT * FROM product_review 
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <update id="update" parameterType="org.example.shopdemo.entity.ProductReview">
+        UPDATE product_review
+        <set>
+            <if test="content != null">content = #{content},</if>
+            <if test="images != null">images = #{images},</if>
+            <if test="isAnonymous != null">is_anonymous = #{isAnonymous},</if>
+        </set>
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM product_review WHERE id = #{id}
+    </delete>
+
+    <select id="countByProductId" resultType="Long">
+        SELECT COUNT(*) FROM product_review WHERE product_id = #{productId}
+    </select>
+
+    <select id="countByUserId" resultType="Long">
+        SELECT COUNT(*) FROM product_review WHERE user_id = #{userId}
+    </select>
+
+    <update id="incrementLikeCount">
+        UPDATE product_review SET like_count = like_count + 1 WHERE id = #{id}
+    </update>
+
+    <update id="replyReview">
+        UPDATE product_review SET reply = #{reply}, reply_time = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="getAverageRating" resultType="Double">
+        SELECT AVG(rating) FROM product_review WHERE product_id = #{productId}
+    </select>
+    
+    <select id="getRatingDistribution" resultType="java.util.Map">
+        SELECT 
+            rating, 
+            COUNT(*) as count 
+        FROM product_review 
+        WHERE product_id = #{productId}
+        GROUP BY rating 
+        ORDER BY rating DESC
+    </select>
+</mapper>
