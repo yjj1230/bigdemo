@@ -42,3 +42,41 @@ export const calculateDiscount = (userCouponId, orderAmount) => {
     params: { userCouponId, orderAmount }
   })
 }
+
+export const getAllCoupons = () => {
+  return request({
+    url: '/coupons/all',
+    method: 'get'
+  })
+}
+
+export const createCoupon = (data) => {
+  return request({
+    url: '/coupons',
+    method: 'post',
+    data
+  })
+}
+
+export const updateCoupon = (id, data) => {
+  return request({
+    url: `/coupons/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+export const deleteCoupon = (id) => {
+  return request({
+    url: `/coupons/${id}`,
+    method: 'delete'
+  })
+}
+
+export const distributeCoupon = (couponId, userId) => {
+  return request({
+    url: '/coupons/distribute',
+    method: 'post',
+    params: { couponId, userId }
+  })
+}

@@ -18,6 +18,10 @@
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </el-menu-item>
+          <el-menu-item index="coupons">
+            <el-icon><Ticket /></el-icon>
+            <span>优惠券管理</span>
+          </el-menu-item>
           <el-menu-item index="logout" divided>
             <el-icon><SwitchButton /></el-icon>
             <span>退出登录</span>
@@ -149,6 +153,62 @@
             </el-table-column>
           </el-table>
         </div>
+
+        <div v-if="activeMenu === 'coupons'">
+          <h2>优惠券管理</h2>
+          <div class="actions">
+            <el-button type="primary" @click="showAddCouponDialog">
+              添加优惠券
+            </el-button>
+            <el-button type="success" @click="loadCoupons" :icon="Refresh">
+              刷新列表
+            </el-button>
+          </div>
+          <el-table :data="coupons" style="width: 100%; margin-top: 20px;">
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column prop="name" label="优惠券名称" />
+            <el-table-column prop="type" label="类型" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getCouponTypeColor(row.type)">
+                  {{ getCouponTypeText(row.type) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="discountAmount" label="优惠金额" width="120">
+              <template #default="{ row }">
+                {{ row.type === 1 ? `¥${row.discountAmount}` : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="discountRate" label="折扣比例" width="120">
+              <template #default="{ row }">
+                {{ row.type === 2 ? `${(row.discountRate * 100).toFixed(0)}%` : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="totalCount" label="总数量" width="100" />
+            <el-table-column prop="receivedCount" label="已领取" width="100" />
+            <el-table-column prop="usedCount" label="已使用" width="100" />
+            <el-table-column prop="status" label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getCouponStatusColor(row.status)">
+                  {{ getCouponStatusText(row.status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="300">
+              <template #default="{ row }">
+                <el-button size="small" @click="editCoupon(row)">
+                  编辑
+                </el-button>
+                <el-button size="small" type="primary" @click="showDistributeDialog(row)">
+                  发放
+                </el-button>
+                <el-button size="small" type="danger" @click="deleteCoupon(row.id)">
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </el-main>
     </el-container>
 
@@ -229,6 +289,82 @@
         <el-button type="primary" @click="saveUser">确定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="couponDialogVisible"
+      :title="isCouponEditMode ? '编辑优惠券' : '添加优惠券'"
+      width="600px"
+    >
+      <el-form :model="couponForm" label-width="120px">
+        <el-form-item label="优惠券名称">
+          <el-input v-model="couponForm.name" />
+        </el-form-item>
+        <el-form-item label="优惠券类型">
+          <el-select v-model="couponForm.type" placeholder="请选择类型">
+            <el-option label="满减券" :value="1" />
+            <el-option label="折扣券" :value="2" />
+            <el-option label="免邮券" :value="3" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="优惠金额" v-if="couponForm.type === 1">
+          <el-input-number v-model="couponForm.discountAmount" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="折扣比例" v-if="couponForm.type === 2">
+          <el-input-number v-model="couponForm.discountRate" :min="0" :max="1" :precision="2" :step="0.01" />
+        </el-form-item>
+        <el-form-item label="最低金额">
+          <el-input-number v-model="couponForm.minAmount" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="最大优惠" v-if="couponForm.type === 2">
+          <el-input-number v-model="couponForm.maxDiscount" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="总数量">
+          <el-input-number v-model="couponForm.totalCount" :min="1" />
+        </el-form-item>
+        <el-form-item label="每人限领">
+          <el-input-number v-model="couponForm.limitPerUser" :min="1" />
+        </el-form-item>
+        <el-form-item label="开始时间">
+          <el-date-picker v-model="couponForm.startTime" type="datetime" placeholder="选择开始时间" />
+        </el-form-item>
+        <el-form-item label="结束时间">
+          <el-date-picker v-model="couponForm.endTime" type="datetime" placeholder="选择结束时间" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="couponForm.status" placeholder="请选择状态">
+            <el-option label="草稿" :value="1" />
+            <el-option label="可领取" :value="2" />
+            <el-option label="已结束" :value="3" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="couponDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveCoupon">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="distributeDialogVisible"
+      title="发放优惠券"
+      width="500px"
+    >
+      <el-form :model="distributeForm" label-width="100px">
+        <el-form-item label="优惠券ID">
+          <el-input v-model="distributeForm.couponId" disabled />
+        </el-form-item>
+        <el-form-item label="优惠券名称">
+          <el-input v-model="distributeForm.couponName" disabled />
+        </el-form-item>
+        <el-form-item label="用户ID">
+          <el-input-number v-model="distributeForm.userId" :min="1" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="distributeDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="distributeCoupon">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -236,7 +372,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Goods, Document, User, SwitchButton, Refresh } from '@element-plus/icons-vue'
+import { Goods, Document, User, SwitchButton, Refresh, Ticket } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import {
   getAllProductsIncludingOffShelf,
@@ -253,6 +389,13 @@ import {
   deleteUser as deleteUserApi,
   updateUserById
 } from '@/api/admin'
+import {
+  getAllCoupons,
+  createCoupon as createCouponApi,
+  updateCoupon as updateCouponApi,
+  deleteCoupon as deleteCouponApi,
+  distributeCoupon as distributeCouponApi
+} from '@/api/coupon'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -261,10 +404,15 @@ const activeMenu = ref('products')
 const products = ref([])
 const orders = ref([])
 const users = ref([])
+const coupons = ref([])
 const productDialogVisible = ref(false)
 const stockDialogVisible = ref(false)
 const isEditMode = ref(false)
 const currentProductId = ref(null)
+const couponDialogVisible = ref(false)
+const isCouponEditMode = ref(false)
+const currentCouponId = ref(null)
+const distributeDialogVisible = ref(false)
 
 const productForm = ref({
   name: '',
@@ -288,6 +436,26 @@ const userForm = ref({
   nickname: '',
   avatar: '',
   status: 1
+})
+
+const couponForm = ref({
+  name: '',
+  type: 1,
+  discountAmount: 0,
+  discountRate: 0,
+  minAmount: 0,
+  maxDiscount: 0,
+  totalCount: 100,
+  limitPerUser: 1,
+  startTime: null,
+  endTime: null,
+  status: 2
+})
+
+const distributeForm = ref({
+  couponId: null,
+  couponName: '',
+  userId: null
 })
 
 const loadProducts = async () => {
@@ -317,6 +485,15 @@ const loadUsers = async () => {
   }
 }
 
+const loadCoupons = async () => {
+  try {
+    const res = await getAllCoupons()
+    coupons.value = res
+  } catch (error) {
+    ElMessage.error({ message: '获取优惠券列表失败', duration: 800 })
+  }
+}
+
 const handleMenuSelect = async (index) => {
   if (index === 'logout') {
     try {
@@ -343,7 +520,151 @@ const handleMenuSelect = async (index) => {
     loadOrders()
   } else if (index === 'users') {
     loadUsers()
+  } else if (index === 'coupons') {
+    loadCoupons()
   }
+}
+
+const showAddCouponDialog = () => {
+  isCouponEditMode.value = false
+  const now = new Date()
+  const endTime = new Date()
+  endTime.setMonth(endTime.getMonth() + 1)
+  
+  // 格式化为ISO-8601格式（LocalDateTime期望的格式）
+  const formatDateTime = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+  }
+  
+  couponForm.value = {
+    name: '',
+    type: 1,
+    discountAmount: 0,
+    discountRate: 0,
+    minAmount: 0,
+    maxDiscount: 0,
+    totalCount: 100,
+    limitPerUser: 1,
+    startTime: formatDateTime(now),
+    endTime: formatDateTime(endTime),
+    status: 2
+  }
+  couponDialogVisible.value = true
+}
+
+const editCoupon = (coupon) => {
+  isCouponEditMode.value = true
+  currentCouponId.value = coupon.id
+  couponForm.value = {
+    id: coupon.id,
+    name: coupon.name,
+    type: coupon.type,
+    discountAmount: coupon.discountAmount,
+    discountRate: coupon.discountRate,
+    minAmount: coupon.minAmount,
+    maxDiscount: coupon.maxDiscount,
+    totalCount: coupon.totalCount,
+    limitPerUser: coupon.limitPerUser,
+    startTime: coupon.startTime,
+    endTime: coupon.endTime,
+    status: coupon.status
+  }
+  couponDialogVisible.value = true
+}
+
+const saveCoupon = async () => {
+  try {
+    if (isCouponEditMode.value) {
+      await updateCouponApi(couponForm.value.id, couponForm.value)
+      ElMessage.success({ message: '更新成功', duration: 800 })
+    } else {
+      await createCouponApi(couponForm.value)
+      ElMessage.success({ message: '添加成功', duration: 800 })
+    }
+    couponDialogVisible.value = false
+    await loadCoupons()
+  } catch (error) {
+    ElMessage.error({ message: isCouponEditMode.value ? '更新失败' : '添加失败', duration: 800 })
+  }
+}
+
+const showDistributeDialog = (coupon) => {
+  distributeForm.value = {
+    couponId: coupon.id,
+    couponName: coupon.name,
+    userId: null
+  }
+  distributeDialogVisible.value = true
+}
+
+const distributeCoupon = async () => {
+  try {
+    await distributeCouponApi(distributeForm.value.couponId, distributeForm.value.userId)
+    ElMessage.success({ message: '发放成功', duration: 800 })
+    distributeDialogVisible.value = false
+    await loadCoupons()
+  } catch (error) {
+    ElMessage.error({ message: '发放失败', duration: 800 })
+  }
+}
+
+const deleteCoupon = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该优惠券吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await deleteCouponApi(id)
+    ElMessage.success({ message: '删除成功', duration: 800 })
+    loadCoupons()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error({ message: '删除失败', duration: 800 })
+    }
+  }
+}
+
+const getCouponTypeText = (type) => {
+  const typeMap = {
+    1: '满减券',
+    2: '折扣券',
+    3: '免邮券'
+  }
+  return typeMap[type] || '未知'
+}
+
+const getCouponTypeColor = (type) => {
+  const colorMap = {
+    1: 'success',
+    2: 'warning',
+    3: 'info'
+  }
+  return colorMap[type] || 'info'
+}
+
+const getCouponStatusText = (status) => {
+  const statusMap = {
+    1: '草稿',
+    2: '可领取',
+    3: '已结束'
+  }
+  return statusMap[status] || '未知'
+}
+
+const getCouponStatusColor = (status) => {
+  const colorMap = {
+    1: 'info',
+    2: 'success',
+    3: 'danger'
+  }
+  return colorMap[status] || 'info'
 }
 
 const showAddProductDialog = () => {

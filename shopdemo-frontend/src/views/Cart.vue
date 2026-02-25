@@ -380,6 +380,7 @@ const loadCart = async () => {
     console.log('购物车数据是否为数组:', Array.isArray(res))
     cartItems.value = res
     console.log('cartItems.value:', cartItems.value)
+    await loadCoupons()
   } catch (error) {
     console.error('获取购物车失败:', error)
     ElMessage.error({ message: '获取购物车失败', duration: 800 })
@@ -432,6 +433,7 @@ const loadAddresses = async () => {
 const loadCoupons = async () => {
   try {
     const res = await getUserCoupons()
+    const currentTotalPrice = cartItems.value.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
     coupons.value = res.filter(coupon => {
       const now = new Date()
       const validStart = new Date(coupon.startTime)
@@ -439,7 +441,7 @@ const loadCoupons = async () => {
       return coupon.status === 1 && 
              now >= validStart && 
              now <= validEnd &&
-             totalPrice.value >= (coupon.minAmount || 0)
+             currentTotalPrice >= (coupon.minAmount || 0)
     })
   } catch (error) {
     console.error('获取优惠券失败', error)
@@ -453,6 +455,7 @@ const updateQuantity = async (item) => {
       quantity: item.quantity
     })
     ElMessage.success({ message: '更新成功', duration: 800 })
+    await loadCoupons()
   } catch (error) {
     ElMessage.error({ message: '更新失败', duration: 800 })
   }

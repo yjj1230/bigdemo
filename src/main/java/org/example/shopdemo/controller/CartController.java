@@ -89,8 +89,7 @@ public class CartController {
     @Operation(summary = "清空购物车", description = "清空当前用户购物车中的所有商品")
     public Result<Void> clearCart(@Parameter(hidden = true) @RequestHeader("Authorization") String token) {
         String actualToken = org.example.shopdemo.utils.jwtutil.extractToken(token);
-        String username = org.example.shopdemo.utils.jwtutil.getUsernameFromToken(actualToken);
-        Long userId = Long.parseLong(username);
+        Long userId = org.example.shopdemo.utils.jwtutil.getUserIdFromToken(actualToken);
         cartService.clearCart(userId);
         return Result.success("清空成功", null);
     }

@@ -171,7 +171,7 @@ public class OrderService {
         }
         
         clearOrderCache(order.getId(), userId);
-        productService.clearRecommendationsCache();
+        productService.clearProductCache();
         return order;
     }
 
@@ -279,7 +279,7 @@ public class OrderService {
         System.out.println("购物车清空成功");
         
         clearOrderCache(order.getId(), userId);
-        productService.clearRecommendationsCache();
+        productService.clearProductCache();
         System.out.println("=== 订单创建完成 ===");
         return order;
     }
@@ -467,6 +467,7 @@ public class OrderService {
         }
         
         clearOrderCache(orderId, order.getUserId());
+        productService.clearProductCache();
         // 直接更新订单状态，不使用消息队列
         webSocketMessageService.sendOrderStatusUpdate(order.getUserId(), order);
     }

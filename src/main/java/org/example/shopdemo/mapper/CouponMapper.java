@@ -31,6 +31,20 @@ public interface CouponMapper {
     Coupon selectById(Long id);
 
     /**
+     * 查询所有优惠券
+     * @return 优惠券列表
+     */
+    @Select("SELECT * FROM coupon ORDER BY create_time DESC")
+    List<Coupon> selectAll();
+
+    /**
+     * 查询所有优惠券（不更新状态）
+     * @return 优惠券列表
+     */
+    @Select("SELECT * FROM coupon ORDER BY create_time DESC")
+    List<Coupon> selectAllWithoutUpdate();
+
+    /**
      * 查询所有可用优惠券
      * @return 优惠券列表
      */
@@ -89,6 +103,7 @@ public interface CouponMapper {
      * 更新优惠券状态
      */
     @Update("UPDATE coupon SET status = CASE " +
+            "WHEN start_time IS NULL OR end_time IS NULL THEN status " +
             "WHEN start_time > NOW() THEN 1 " +
             "WHEN end_time < NOW() THEN 3 " +
             "ELSE 2 END, update_time = NOW()")

@@ -24,9 +24,9 @@
             <span class="nav-icon">📋</span>
             <span class="nav-text">订单</span>
           </router-link>
-          <router-link to="/ai" class="nav-link">
+          <router-link to="/agent" class="nav-link">
                     <span class="nav-icon">🤖</span>
-                    <span class="nav-text">AI助手</span>
+                    <span class="nav-text">智能助手</span>
                   </router-link>
                   <router-link to="/favorites" class="nav-link">
                     <span class="nav-icon">❤️</span>

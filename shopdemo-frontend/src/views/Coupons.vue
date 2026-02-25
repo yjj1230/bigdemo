@@ -249,17 +249,13 @@ const loadMyCoupons = async () => {
 
 const receiveCoupon = async (couponId) => {
   try {
-    const response = await apiReceiveCoupon(couponId)
-    if (response.code === 200) {
-      ElMessage.success('领取成功')
-      loadAvailableCoupons()
-      loadMyCoupons()
-    } else {
-      ElMessage.error(response.message || '领取失败')
-    }
+    await apiReceiveCoupon(couponId)
+    ElMessage.success('领取成功')
+    loadAvailableCoupons()
+    loadMyCoupons()
   } catch (error) {
     console.error('领取优惠券失败:', error)
-    ElMessage.error('领取优惠券失败')
+    ElMessage.error(error.message || '领取优惠券失败')
   }
 }
 
@@ -306,6 +302,7 @@ onMounted(() => {
 })
 
 onActivated(() => {
+  loadAvailableCoupons()
   loadMyCoupons()
 })
 </script>

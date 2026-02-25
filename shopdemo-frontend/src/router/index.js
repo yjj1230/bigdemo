@@ -95,6 +95,12 @@ const routes = [
     name: 'Notification',
     component: () => import('@/views/Notification.vue'),
     meta: { title: '消息中心', requiresAuth: true }
+  },
+  {
+    path: '/agent',
+    name: 'AgentChat',
+    component: () => import('@/views/AgentChat.vue'),
+    meta: { title: '智能助手', requiresAuth: true }
   }
 ]
 

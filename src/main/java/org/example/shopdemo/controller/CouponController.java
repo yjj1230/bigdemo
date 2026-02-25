@@ -133,9 +133,43 @@ public class CouponController {
     public Result<Long> createCoupon(@RequestBody Coupon coupon) {
         coupon.setReceivedCount(0);
         coupon.setUsedCount(0);
-        coupon.setStatus(1);
+        if (coupon.getStatus() == null) {
+            coupon.setStatus(2);
+        }
         couponMapper.insert(coupon);
         return Result.success(coupon.getId());
+    }
+
+    /**
+     * 管理员获取所有优惠券
+     * @return 优惠券列表
+     */
+    @GetMapping("/all")
+    @RequireAdmin
+    @Operation(summary = "获取所有优惠券", description = "管理员获取所有优惠券列表")
+    public Result<List<Coupon>> getAllCoupons() {
+        List<Coupon> coupons = couponService.getAllCoupons();
+        return Result.success(coupons);
+    }
+
+    /**
+     * 管理员发放优惠券给用户
+     * @param couponId 优惠券ID
+     * @param userId 用户ID
+     * @return 用户优惠券ID
+     */
+    @PostMapping("/distribute")
+    @RequireAdmin
+    @Operation(summary = "发放优惠券", description = "管理员发放优惠券给指定用户")
+    public Result<Long> distributeCoupon(
+            @Parameter(description = "优惠券ID") @RequestParam Long couponId,
+            @Parameter(description = "用户ID") @RequestParam Long userId) {
+        try {
+            Long userCouponId = couponService.distributeCoupon(userId, couponId);
+            return Result.success(userCouponId);
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
     }
 
     /**

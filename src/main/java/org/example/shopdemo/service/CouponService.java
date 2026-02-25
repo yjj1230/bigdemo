@@ -33,6 +33,14 @@ public class CouponService {
     }
 
     /**
+     * 获取所有优惠券（不更新状态）
+     * @return 优惠券列表
+     */
+    public List<Coupon> getAllCoupons() {
+        return couponMapper.selectAllWithoutUpdate();
+    }
+
+    /**
      * 获取用户可领取的优惠券
      * @param userId 用户ID
      * @return 优惠券列表
@@ -181,5 +189,45 @@ public class CouponService {
      */
     public UserCoupon getUserCouponById(Long id) {
         return userCouponMapper.selectById(id);
+    }
+
+    /**
+     * 管理员发放优惠券给用户
+     * @param userId 用户ID
+     * @param couponId 优惠券ID
+     * @return 用户优惠券ID
+     */
+    @Transactional
+    public Long distributeCoupon(Long userId, Long couponId) {
+        Coupon coupon = couponMapper.selectById(couponId);
+        if (coupon == null) {
+            throw new RuntimeException("优惠券不存在");
+        }
+
+        if (coupon.getStatus() != 1 && coupon.getStatus() != 2) {
+            throw new RuntimeException("优惠券不可发放");
+        }
+
+        int userReceivedCount = userCouponMapper.countByUserAndCoupon(userId, couponId);
+        if (userReceivedCount >= coupon.getLimitPerUser()) {
+            throw new RuntimeException("用户已达到领取上限");
+        }
+
+        UserCoupon userCoupon = new UserCoupon();
+        userCoupon.setUserId(userId);
+        userCoupon.setCouponId(couponId);
+        userCoupon.setCouponName(coupon.getName());
+        userCoupon.setType(coupon.getType());
+        userCoupon.setDiscountAmount(coupon.getDiscountAmount());
+        userCoupon.setDiscountRate(coupon.getDiscountRate());
+        userCoupon.setMinAmount(coupon.getMinAmount());
+        userCoupon.setMaxDiscount(coupon.getMaxDiscount());
+        userCoupon.setStartTime(coupon.getStartTime());
+        userCoupon.setEndTime(coupon.getEndTime());
+
+        userCouponMapper.insert(userCoupon);
+        couponMapper.incrementReceivedCount(couponId);
+
+        return userCoupon.getId();
     }
 }

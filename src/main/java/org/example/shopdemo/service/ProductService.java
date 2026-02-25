@@ -190,11 +190,18 @@ public class ProductService {
     /**
      * 清除商品列表缓存
      */
-    private void clearProductCache() {
+    public void clearProductCache() {
         String cacheKey1 = AdvancedRedisCacheService.generateKey(PRODUCT_LIST_CACHE_PREFIX, "all");
         String cacheKey2 = AdvancedRedisCacheService.generateKey(PRODUCT_LIST_CACHE_PREFIX, "all_including_off_shelf");
+        String cacheKey3 = AdvancedRedisCacheService.generateKey(PRODUCT_LIST_CACHE_PREFIX, "recommendations");
+        
+        redisTemplate.delete(cacheKey1);
+        redisTemplate.delete(cacheKey2);
+        redisTemplate.delete(cacheKey3);
+        
         advancedRedisCacheService.delete(cacheKey1);
         advancedRedisCacheService.delete(cacheKey2);
+        advancedRedisCacheService.delete(cacheKey3);
     }
     
     /**
