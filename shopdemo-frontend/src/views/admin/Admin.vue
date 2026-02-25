@@ -22,6 +22,10 @@
             <el-icon><Ticket /></el-icon>
             <span>优惠券管理</span>
           </el-menu-item>
+          <el-menu-item index="refunds">
+            <el-icon><RefreshRight /></el-icon>
+            <span>退款管理</span>
+          </el-menu-item>
           <el-menu-item index="logout" divided>
             <el-icon><SwitchButton /></el-icon>
             <span>退出登录</span>
@@ -209,6 +213,86 @@
             </el-table-column>
           </el-table>
         </div>
+
+        <div v-if="activeMenu === 'refunds'">
+          <h2>退款管理</h2>
+          <div class="actions">
+            <el-button type="primary" @click="loadRefunds('pending')">
+              待审核
+            </el-button>
+            <el-button type="success" @click="loadRefunds('approved')">
+              待处理
+            </el-button>
+            <el-button type="warning" @click="loadRefunds('processing')">
+              退款中
+            </el-button>
+            <el-button type="info" @click="loadRefunds('all')">
+              全部退款
+            </el-button>
+          </div>
+          <el-table :data="refunds" style="width: 100%; margin-top: 20px;">
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column prop="refundNo" label="退款单号" width="180" />
+            <el-table-column prop="orderId" label="订单ID" width="100" />
+            <el-table-column prop="userId" label="用户ID" width="100" />
+            <el-table-column prop="refundAmount" label="退款金额" width="120">
+              <template #default="{ row }">
+                ¥{{ row.refundAmount }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="reason" label="退款原因" width="200" />
+            <el-table-column prop="status" label="状态" width="120">
+              <template #default="{ row }">
+                <el-tag :type="getRefundStatusType(row.status)">
+                  {{ row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="申请时间" width="180" />
+            <el-table-column label="操作" width="400">
+              <template #default="{ row }">
+                <el-button
+                  v-if="row.status === '待审核'"
+                  size="small"
+                  type="success"
+                  @click="approveRefund(row.id)"
+                >
+                  审核通过
+                </el-button>
+                <el-button
+                  v-if="row.status === '待审核'"
+                  size="small"
+                  type="danger"
+                  @click="showRejectDialog(row)"
+                >
+                  审核拒绝
+                </el-button>
+                <el-button
+                  v-if="row.status === '审核通过'"
+                  size="small"
+                  type="primary"
+                  @click="showProcessDialog(row)"
+                >
+                  处理退款
+                </el-button>
+                <el-button
+                  v-if="row.status === '退款中'"
+                  size="small"
+                  type="success"
+                  @click="completeRefund(row.id)"
+                >
+                  完成退款
+                </el-button>
+                <el-button
+                  size="small"
+                  @click="viewRefundDetail(row)"
+                >
+                  查看详情
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </el-main>
     </el-container>
 
@@ -365,6 +449,50 @@
         <el-button type="primary" @click="distributeCoupon">确定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="rejectDialogVisible"
+      title="审核拒绝"
+      width="500px"
+    >
+      <el-form :model="rejectForm" label-width="100px">
+        <el-form-item label="退款单号">
+          <el-input v-model="rejectForm.refundNo" disabled />
+        </el-form-item>
+        <el-form-item label="拒绝原因">
+          <el-input v-model="rejectForm.rejectReason" type="textarea" :rows="4" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmReject">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="processDialogVisible"
+      title="处理退款"
+      width="500px"
+    >
+      <el-form :model="processForm" label-width="100px">
+        <el-form-item label="退款单号">
+          <el-input v-model="processForm.refundNo" disabled />
+        </el-form-item>
+        <el-form-item label="退款方式">
+          <el-select v-model="processForm.refundMethod" placeholder="请选择退款方式">
+            <el-option label="原路退回" value="原路退回" />
+            <el-option label="银行转账" value="银行转账" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="退款账户">
+          <el-input v-model="processForm.refundAccount" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="processDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmProcess">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -372,7 +500,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Goods, Document, User, SwitchButton, Refresh, Ticket } from '@element-plus/icons-vue'
+import { Goods, Document, User, SwitchButton, Refresh, Ticket, RefreshRight } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import {
   getAllProductsIncludingOffShelf,
@@ -396,6 +524,16 @@ import {
   deleteCoupon as deleteCouponApi,
   distributeCoupon as distributeCouponApi
 } from '@/api/coupon'
+import {
+  getPendingRefunds,
+  getApprovedRefunds,
+  getProcessingRefunds,
+  getAllRefunds,
+  approveRefund as approveRefundApi,
+  rejectRefund as rejectRefundApi,
+  processRefund as processRefundApi,
+  completeRefund as completeRefundApi
+} from '@/api/refund'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -405,6 +543,7 @@ const products = ref([])
 const orders = ref([])
 const users = ref([])
 const coupons = ref([])
+const refunds = ref([])
 const productDialogVisible = ref(false)
 const stockDialogVisible = ref(false)
 const isEditMode = ref(false)
@@ -413,6 +552,8 @@ const couponDialogVisible = ref(false)
 const isCouponEditMode = ref(false)
 const currentCouponId = ref(null)
 const distributeDialogVisible = ref(false)
+const rejectDialogVisible = ref(false)
+const processDialogVisible = ref(false)
 
 const productForm = ref({
   name: '',
@@ -456,6 +597,19 @@ const distributeForm = ref({
   couponId: null,
   couponName: '',
   userId: null
+})
+
+const rejectForm = ref({
+  id: null,
+  refundNo: '',
+  rejectReason: ''
+})
+
+const processForm = ref({
+  id: null,
+  refundNo: '',
+  refundMethod: '',
+  refundAccount: ''
 })
 
 const loadProducts = async () => {
@@ -522,6 +676,8 @@ const handleMenuSelect = async (index) => {
     loadUsers()
   } else if (index === 'coupons') {
     loadCoupons()
+  } else if (index === 'refunds') {
+    loadRefunds('pending')
   }
 }
 
@@ -859,6 +1015,149 @@ const getStatusText = (status) => {
     4: '已取消'
   }
   return statusMap[status] || '未知'
+}
+
+const loadRefunds = async (type) => {
+  try {
+    let res
+    switch (type) {
+      case 'pending':
+        res = await getPendingRefunds()
+        break
+      case 'approved':
+        res = await getApprovedRefunds()
+        break
+      case 'processing':
+        res = await getProcessingRefunds()
+        break
+      case 'all':
+        res = await getAllRefunds()
+        break
+      default:
+        res = await getPendingRefunds()
+    }
+    refunds.value = res
+  } catch (error) {
+    ElMessage.error({ message: '获取退款列表失败', duration: 800 })
+  }
+}
+
+const approveRefund = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要审核通过该退款申请吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await approveRefundApi(id)
+    ElMessage.success({ message: '审核通过', duration: 800 })
+    loadRefunds('pending')
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error({ message: '审核失败', duration: 800 })
+    }
+  }
+}
+
+const showRejectDialog = (refund) => {
+  rejectForm.value = {
+    id: refund.id,
+    refundNo: refund.refundNo,
+    rejectReason: ''
+  }
+  rejectDialogVisible.value = true
+}
+
+const confirmReject = async () => {
+  try {
+    if (!rejectForm.value.rejectReason.trim()) {
+      ElMessage.error({ message: '请输入拒绝原因', duration: 800 })
+      return
+    }
+    await rejectRefundApi(rejectForm.value.id, rejectForm.value.rejectReason)
+    ElMessage.success({ message: '审核拒绝', duration: 800 })
+    rejectDialogVisible.value = false
+    loadRefunds('pending')
+  } catch (error) {
+    ElMessage.error({ message: '审核失败', duration: 800 })
+  }
+}
+
+const showProcessDialog = (refund) => {
+  processForm.value = {
+    id: refund.id,
+    refundNo: refund.refundNo,
+    refundMethod: '',
+    refundAccount: ''
+  }
+  processDialogVisible.value = true
+}
+
+const confirmProcess = async () => {
+  try {
+    if (!processForm.value.refundMethod) {
+      ElMessage.error({ message: '请选择退款方式', duration: 800 })
+      return
+    }
+    if (!processForm.value.refundAccount.trim()) {
+      ElMessage.error({ message: '请输入退款账户', duration: 800 })
+      return
+    }
+    await processRefundApi(processForm.value.id, processForm.value.refundMethod, processForm.value.refundAccount)
+    ElMessage.success({ message: '处理成功', duration: 800 })
+    processDialogVisible.value = false
+    loadRefunds('approved')
+  } catch (error) {
+    ElMessage.error({ message: '处理失败', duration: 800 })
+  }
+}
+
+const completeRefund = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要完成该退款吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await completeRefundApi(id)
+    ElMessage.success({ message: '退款完成', duration: 800 })
+    loadRefunds('processing')
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error({ message: '操作失败', duration: 800 })
+    }
+  }
+}
+
+const viewRefundDetail = (refund) => {
+  ElMessageBox.alert(`
+    <div style="text-align: left;">
+      <p><strong>退款单号：</strong>${refund.refundNo}</p>
+      <p><strong>订单ID：</strong>${refund.orderId}</p>
+      <p><strong>用户ID：</strong>${refund.userId}</p>
+      <p><strong>退款金额：</strong>¥${refund.refundAmount}</p>
+      <p><strong>退款原因：</strong>${refund.reason}</p>
+      <p><strong>退款状态：</strong>${refund.status}</p>
+      <p><strong>申请时间：</strong>${refund.createTime}</p>
+      ${refund.rejectReason ? `<p><strong>拒绝原因：</strong>${refund.rejectReason}</p>` : ''}
+      ${refund.refundMethod ? `<p><strong>退款方式：</strong>${refund.refundMethod}</p>` : ''}
+      ${refund.refundAccount ? `<p><strong>退款账户：</strong>${refund.refundAccount}</p>` : ''}
+    </div>
+  `, '退款详情', {
+    dangerouslyUseHTMLString: true,
+    confirmButtonText: '关闭'
+  })
+}
+
+const getRefundStatusType = (status) => {
+  const statusMap = {
+    '待审核': 'warning',
+    '审核通过': 'success',
+    '审核拒绝': 'danger',
+    '退款中': 'primary',
+    '退款完成': 'success'
+  }
+  return statusMap[status] || 'info'
 }
 
 onMounted(() => {

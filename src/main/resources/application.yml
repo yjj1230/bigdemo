@@ -27,6 +27,15 @@ spring:
   main:
     allow-bean-definition-overriding: true
     allow-circular-references: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/users?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
@@ -92,3 +101,51 @@ wechat:
 #  4. API v3密钥 ：在商户平台设置
 #  5. 应用ID ：在微信开放平台获取
 #  6. 通知URL ：修改为您的服务器地址
+
+# Agent配置
+agent:
+  # 意图识别配置
+  intent-recognition:
+    # 意图识别方法：keyword, llm, hybrid
+    method: hybrid
+    # 置信度阈值（0-1）
+    confidence-threshold: 0.7
+    # 是否启用LLM意图识别
+    enable-llm: true
+    # 是否启用关键词意图识别
+    enable-keyword: true
+  
+  # 对话上下文配置
+  conversation:
+    # 上下文超时时间（毫秒）
+    context-timeout: 300000  # 5分钟
+    # 最大历史记录数
+    max-history: 10
+    # 是否启用上下文管理
+    enable-context: true
+    # 是否启用对话历史
+    enable-history: true
+  
+  # 性能优化配置
+  performance:
+    # 是否启用缓存
+    enable-cache: true
+    # 是否启用异步处理
+    enable-async: false
+    # 最大重试次数
+    max-retries: 3
+    # 重试延迟（毫秒）
+    retry-delay: 1000
+    # 是否启用性能监控
+    enable-monitoring: true
+  
+  # LLM配置
+  llm:
+    # LLM模型名称
+    model-name: deepseek-chat
+    # 温度参数（0-2）
+    temperature: 0.7
+    # 最大token数
+    max-tokens: 1000
+    # 超时时间（毫秒）
+    timeout: 30000  # 30秒

@@ -58,3 +58,31 @@ export function completeRefund(id) {
     method: 'post'
   })
 }
+
+export function getPendingRefunds() {
+  return request({
+    url: '/refund/pending',
+    method: 'get'
+  })
+}
+
+export function getApprovedRefunds() {
+  return request({
+    url: '/refund/approved',
+    method: 'get'
+  })
+}
+
+export function getProcessingRefunds() {
+  return request({
+    url: '/refund/processing',
+    method: 'get'
+  })
+}
+
+export function getAllRefunds() {
+  return request({
+    url: '/refund/all',
+    method: 'get'
+  })
+}

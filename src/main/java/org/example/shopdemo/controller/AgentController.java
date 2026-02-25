@@ -3,8 +3,10 @@ package org.example.shopdemo.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.example.shopdemo.agent.ratelimit.AgentRateLimiter;
 import org.example.shopdemo.agent.service.ConversationHistoryService;
-import org.example.shopdemo.agent.service.IntelligentAgent;
+import org.example.shopdemo.agent.service.OptimizedIntelligentAgent;
+import org.example.shopdemo.agent.validator.AgentInputValidator;
 import org.example.shopdemo.common.Result;
 import org.example.shopdemo.utils.jwtutil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +26,11 @@ import java.util.Map;
 public class AgentController {
     
     /**
-     * 智能Agent服务
+     * 优化后的智能Agent服务
      * 负责处理用户消息、识别意图、路由到合适的工具
      */
     @Autowired
-    private IntelligentAgent intelligentAgent;
+    private OptimizedIntelligentAgent optimizedIntelligentAgent;
     
     /**
      * 对话历史管理服务
@@ -38,11 +40,26 @@ public class AgentController {
     private ConversationHistoryService historyService;
     
     /**
+     * 输入验证器
+     * 验证用户输入的安全性和有效性
+     */
+    @Autowired
+    private AgentInputValidator inputValidator;
+    
+    /**
+     * 速率限制器
+     * 防止用户频繁请求
+     */
+    @Autowired
+    private AgentRateLimiter rateLimiter;
+    
+    /**
      * 处理用户消息
      * 这是Agent的主要入口，接收用户的自然语言输入并返回响应
      * @param request 包含用户消息的请求体
      * @param token JWT token，用于获取用户ID
      * @return Agent的响应
+     * // 流程编排：验证→限流→处理→返回
      */
     @PostMapping("/chat")
     @Operation(summary = "智能对话", description = "发送消息给智能Agent，Agent会自动识别意图并返回相应结果")
@@ -53,9 +70,23 @@ public class AgentController {
             // 从请求中获取用户消息
             String message = request.get("message");
             
-            // 检查消息是否为空
-            if (message == null || message.trim().isEmpty()) {
-                return Result.error(400, "消息不能为空");
+            // 调试：打印原始消息
+            System.out.println("=== 收到消息 ===");
+            System.out.println("原始消息: " + message);
+            System.out.println("消息长度: " + (message != null ? message.length() : "null"));
+            if (message != null) {
+                byte[] bytes = message.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                System.out.println("UTF-8字节数组长度: " + bytes.length);
+                for (int i = 0; i < Math.min(20, bytes.length); i++) {
+                    System.out.printf("字节[%d]: 0x%02X (%d)\n", i, bytes[i] & 0xFF, bytes[i] & 0xFF);
+                }
+            }
+            System.out.println("================");
+            
+            // 验证消息
+            AgentInputValidator.ValidationResult validationResult = inputValidator.validateMessage(message);
+            if (!validationResult.isValid()) {
+                return Result.error(400, validationResult.getErrorMessage());
             }
             
             // 从token中提取纯token（去除Bearer前缀）
@@ -67,8 +98,17 @@ public class AgentController {
             // 从token中提取用户ID
             Long userId = jwtutil.getUserIdFromToken(actualToken);
             
+            // 检查速率限制
+            if (!rateLimiter.allowRequest(userId)) {
+                int remaining = rateLimiter.getRemainingRequests(userId);
+                long resetTime = rateLimiter.getResetTime(userId);
+                return Result.error(429, 
+                    String.format("请求过于频繁，请稍后再试。剩余次数：%d，重置时间：%d秒后", 
+                        remaining, resetTime));
+            }
+            
             // 调用智能Agent处理用户消息
-            String response = intelligentAgent.processUserMessage(message, userId);
+            String response = optimizedIntelligentAgent.processUserMessage(message, userId);
 
             System.out.println("Agent response: " + response);
             // 返回Agent的响应
@@ -122,7 +162,7 @@ public class AgentController {
             });
             
             // 添加工具列表
-            capabilities.put("tools", intelligentAgent.getAllTools());
+            capabilities.put("tools", optimizedIntelligentAgent.getAllTools());
             
             return Result.success(capabilities);
             

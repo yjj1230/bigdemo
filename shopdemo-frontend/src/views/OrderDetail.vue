@@ -92,12 +92,20 @@
                 已评价
               </el-button>
               <el-button 
-                v-if="order.status >= 1 && order.status !== 4"
+                v-if="order.status >= 1 && order.status !== 4 && !hasRefund(row.id)"
                 type="danger" 
                 size="small" 
                 @click="openRefundDialog(row)"
               >
                 申请退款
+              </el-button>
+              <el-button 
+                v-if="hasRefund(row.id)"
+                type="info" 
+                size="small" 
+                disabled
+              >
+                已申请退款
               </el-button>
             </template>
           </el-table-column>
@@ -235,12 +243,13 @@ import { ElMessage } from 'element-plus'
 import { getOrderDetail } from '@/api/order'
 import { addReview, canReview } from '@/api/product'
 import { getLogisticsByOrderId } from '@/api/logistics'
-import { createRefund } from '@/api/refund'
+import { getRefundsByOrderId, createRefund } from '@/api/refund'
 
 const route = useRoute()
 const userStore = useUserStore()
 const order = ref(null)
 const logisticsList = ref([])
+const refundList = ref([])
 const reviewDialogVisible = ref(false)
 const refundDialogVisible = ref(false)
 const currentProduct = ref(null)
@@ -261,6 +270,7 @@ const submittingRefund = ref(false)
 onMounted(async () => {
   await loadOrderDetail()
   await loadLogistics()
+  await loadRefunds()
 })
 
 const loadOrderDetail = async () => {
@@ -284,6 +294,24 @@ const loadLogistics = async () => {
     console.log('暂无物流信息', error)
     logisticsList.value = []
   }
+}
+
+const loadRefunds = async () => {
+  try {
+    const id = route.params.id
+    const res = await getRefundsByOrderId(id)
+    refundList.value = res || []
+    console.log('退款信息:', refundList.value)
+  } catch (error) {
+    console.log('暂无退款信息', error)
+    refundList.value = []
+  }
+}
+
+const hasRefund = (orderItemId) => {
+  return refundList.value.some(refund => 
+    refund.orderItemId === orderItemId && refund.status !== '审核拒绝'
+  )
 }
 
 const openReviewDialog = async (product) => {
@@ -371,7 +399,11 @@ const submitRefund = async () => {
     ElMessage.success('退款申请已提交，请等待审核')
     refundDialogVisible.value = false
   } catch (error) {
-    ElMessage.error('退款申请失败：' + (error.message || '未知错误'))
+    if (error.message && error.message.includes('已申请退款')) {
+      ElMessage.error(error.message)
+    } else {
+      ElMessage.error('退款申请失败：' + (error.message || '未知错误'))
+    }
   } finally {
     submittingRefund.value = false
   }

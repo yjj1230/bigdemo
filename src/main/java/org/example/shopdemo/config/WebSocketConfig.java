@@ -1,6 +1,7 @@
 package org.example.shopdemo.config;
 
 import org.example.shopdemo.websocket.OrderWebSocketHandler;
+import org.example.shopdemo.websocket.RefundWebSocketHandler;
 import org.example.shopdemo.websocket.WebSocketInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private OrderWebSocketHandler orderWebSocketHandler;
 
     @Autowired
+    private RefundWebSocketHandler refundWebSocketHandler;
+
+    @Autowired
     private WebSocketInterceptor webSocketInterceptor;
 
     /**
@@ -29,6 +33,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(orderWebSocketHandler, "/ws/order")
+                .addInterceptors(webSocketInterceptor)
+                .setAllowedOrigins("*");
+        registry.addHandler(refundWebSocketHandler, "/ws/refund")
                 .addInterceptors(webSocketInterceptor)
                 .setAllowedOrigins("*");
     }

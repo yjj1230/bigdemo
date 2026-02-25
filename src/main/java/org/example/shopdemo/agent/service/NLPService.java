@@ -53,7 +53,7 @@ public class NLPService {
         INTENT_KEYWORDS.put("PRODUCT_COMPARE", new String[]{"对比", "比较", "商品对比", "哪个好", "推荐哪个"});
         
         // 购物车相关
-        INTENT_KEYWORDS.put("CART_QUERY", new String[]{"购物车", "我的购物车", "购物车查询"});
+        INTENT_KEYWORDS.put("CART_QUERY", new String[]{"购物车", "我的购物车", "购物车查询","查看购物车"});
         
         // 退款相关
         INTENT_KEYWORDS.put("REFUND_APPLY", new String[]{"退款", "退货", "售后", "申请退款"});
@@ -63,7 +63,7 @@ public class NLPService {
         INTENT_KEYWORDS.put("NOTIFICATION_QUERY", new String[]{"消息", "通知", "我的消息", "未读消息"});
         
         // 收藏相关
-        INTENT_KEYWORDS.put("FAVORITE_QUERY", new String[]{"收藏", "我的收藏", "收藏夹"});
+        INTENT_KEYWORDS.put("FAVORITE_QUERY", new String[]{"收藏", "我的收藏", "收藏夹","查询收藏"});
         
         // 问候相关
         INTENT_KEYWORDS.put("GREETING", new String[]{"你好", "您好", "hello", "hi", "嗨"});
@@ -163,6 +163,10 @@ public class NLPService {
                 // 提取订单号
                 params.put("orderNo", extractOrderNo(message));
                 break;
+            case "PRODUCT_COMPARE":
+                // 提取商品ID
+                extractProductIds(message, params);
+                break;
         }
         
         return params;
@@ -220,6 +224,39 @@ public class NLPService {
             }
         }
         return null;
+    }
+    
+    /**
+     * 从消息中提取商品ID
+     * 支持多种格式：商品1、商品ID1、商品ID：1、商品：1
+     * @param message 用户输入的消息
+     * @param params 参数映射表，用于存储提取的商品ID
+     */
+    private void extractProductIds(String message, Map<String, Object> params) {
+        // 匹配"商品1"、"商品ID1"、"商品ID：1"、"商品：1"、"商品1和商品2"等格式
+        Pattern pattern = Pattern.compile("商品(?:ID)?[:：]?\\s*(\\d+)");
+        Matcher matcher = pattern.matcher(message);
+        
+        java.util.List<Long> productIds = new java.util.ArrayList<>();
+        
+        // 提取所有匹配的商品ID
+        while (matcher.find()) {
+            try {
+                Long productId = Long.parseLong(matcher.group(1));
+                productIds.add(productId);
+            } catch (NumberFormatException e) {
+                // 忽略无法解析的数字
+            }
+        }
+        
+        // 如果找到了两个商品ID，分别存储
+        if (productIds.size() >= 2) {
+            params.put("product1Id", productIds.get(0));
+            params.put("product2Id", productIds.get(1));
+        } else if (productIds.size() == 1) {
+            // 如果只找到一个商品ID，存储为第一个商品
+            params.put("product1Id", productIds.get(0));
+        }
     }
     
     /**

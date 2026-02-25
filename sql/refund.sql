@@ -1,6 +1,7 @@
 -- 退款退货表
 CREATE TABLE IF NOT EXISTS `refund` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
   `order_id` BIGINT NOT NULL COMMENT '订单ID',
   `order_item_id` BIGINT COMMENT '订单商品ID（部分退款时使用）',
   `refund_no` VARCHAR(100) NOT NULL COMMENT '退款单号',

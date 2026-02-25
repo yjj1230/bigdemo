@@ -49,6 +49,12 @@ const routes = [
     meta: { title: '我的订单', requiresAuth: true }
   },
   {
+    path: '/refunds',
+    name: 'Refunds',
+    component: () => import('@/views/RefundList.vue'),
+    meta: { title: '我的退款', requiresAuth: true }
+  },
+  {
     path: '/order/:id',
     name: 'OrderDetail',
     component: () => import('@/views/OrderDetail.vue'),
