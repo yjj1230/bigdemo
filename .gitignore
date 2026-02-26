@@ -1,0 +1,70 @@
+# 编译输出
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE配置
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+.springBeans
+
+# 日志文件
+*.log
+logs/
+log/
+
+# 敏感配置
+application-local.yml
+application-dev.yml
+application-prod.yml
+.env
+.env.local
+.env.*.local
+
+# 操作系统
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.bak
+*.cache
+*.pid
+*.seed
+
+# Node modules (如果有前端)
+node_modules/
+dist/
+.nuxt/
+.cache/
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# 其他
+*.orig
+*.rej
+.DS_Store?
+ehthumbs.db
+Thumbs.db

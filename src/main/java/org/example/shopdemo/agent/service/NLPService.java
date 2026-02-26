@@ -10,8 +10,6 @@ import java.util.regex.Pattern;
 
 /**
  * agent（tool、Agenttype、LLm（大语言模型）、initialize、NLPService）
- *
- *
  * 自然语言处理服务
  * 负责识别用户消息的意图和提取参数
  * 使用关键词匹配的方式实现简单的意图识别
@@ -88,7 +86,7 @@ public class NLPService {
         // 将消息转换为小写，便于匹配
         String lowerMessage = message.toLowerCase();
         
-        // 用于存储匹配到的意图及其匹配的关键词数量
+        //**************** 用于存储匹配到的意图及其匹配的关键词数量
         Map<String, Integer> intentMatches = new HashMap<>();
         
         // 遍历所有意图类型，匹配关键词
@@ -117,6 +115,7 @@ public class NLPService {
         for (Map.Entry<String, Integer> entry : intentMatches.entrySet()) {
             if (entry.getValue() > maxMatches) {
                 maxMatches = entry.getValue();
+                // 获取匹配关键词数量最多的意图类型
                 bestIntent = entry.getKey();
             }
         }
@@ -129,7 +128,7 @@ public class NLPService {
             }
         }
         
-        // 提取参数   意图类型bestIntent
+        // 提取参数   意图类型bestIntent  根据不同的信息提取不同的参数放入params中
         Map<String, Object> params = extractParams(message, bestIntent);
         // 返回识别出的意图       获取意图的描述getIntentDescription(bestIntent)
         return new Intent(bestIntent, getIntentDescription(bestIntent), params, 0.9);

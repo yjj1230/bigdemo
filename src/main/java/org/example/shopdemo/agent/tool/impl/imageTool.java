@@ -2,6 +2,11 @@ package org.example.shopdemo.agent.tool.impl;
 
 import org.example.shopdemo.agent.tool.Tool;
 import org.example.shopdemo.common.Result;
+import org.springframework.ai.image.ImagePrompt;
+import org.springframework.ai.image.ImageResponse;
+import org.springframework.ai.zhipuai.ZhiPuAiImageModel;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +16,10 @@ import java.util.Map;
  * 负责处理图片相关的请求
  * 目前功能待实现
  */
+@Component
 public class imageTool implements Tool {
+    @Autowired
+    private ZhiPuAiImageModel zhiPuAiImageModel;
     
     /**
      * 执行图片处理功能
@@ -23,9 +31,10 @@ public class imageTool implements Tool {
      */
     @Override
     public Result<Map<String, Object>> execute(String message, Long userId, Map<String, Object> params) {
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("message", "图片处理功能正在开发中，敬请期待！");
-        return Result.success(responseData);
+        ImagePrompt imagePrompt = new ImagePrompt(message);
+        ImageResponse imageResponse = zhiPuAiImageModel.call(imagePrompt);
+        String url=imageResponse.getResult().getOutput().getUrl();
+        return Result.success(url);
     }
 
     /**

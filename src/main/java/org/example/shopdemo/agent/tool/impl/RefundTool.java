@@ -187,6 +187,7 @@ public class RefundTool implements Tool {
     
     @Override
     public boolean canHandle(String message) {
+        // 判断是否为退款申请或退款查询
         return message.equals("REFUND_APPLY") || message.equals("REFUND_QUERY");
     }
 }

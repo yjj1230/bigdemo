@@ -39,6 +39,7 @@ public class FavoriteTool implements Tool {
      */
     @Override
     public Result execute(String message, Long userId, Map<String, Object> params) {
+
         return getFavoriteList(userId);
     }
     
